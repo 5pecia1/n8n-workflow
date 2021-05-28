@@ -4,7 +4,7 @@ type NotionPage = {
     id: string;
     last_edited_time: string;
     properties: {
-        "GCal Id": {
+        "GCal-Id": {
             text: string;
         };
         "FIX-End": {
@@ -28,9 +28,70 @@ type CalenderEvent = {
         dateTime: string;
     };
 };
+
+type CreateEvent = {
+    date: {
+        start: string;
+        end: string;
+    };
+    summary: string;
+    description: string;
+};
+type CreatePage = {
+    date: {
+        start: string;
+        end: string;
+    };
+    "GCal-Id": string;
+    name: string;
+};
+
+type UpdateEvent = {
+    date: {
+        start: string;
+        end: string;
+    };
+    summary: string;
+};
+
+type UpdatePage = {
+    date: {
+        start: string;
+        end: string;
+    };
+    name: string;
+};
+
+type DeleteEvent = {
+    id: string;
+};
+
+type DeletePage = {
+    id: string;
+};
+
+type Result = {
+    create_events: CreateEvent[];
+    create_pages: CreatePage[];
+    update_events: UpdateEvent[];
+    update_pages: UpdatePage[];
+    delete_events: DeleteEvent[];
+    // Notion DO NOT SUPPORT DELETE API. ref: https://developers.notion.com
+    delete_pages: DeletePage[];
+};
+
 const ONE_DAY_UNIX_TIME = 86400000;
 const ADD_TO_NOTION_MARK = ["notion:", "notion :", "Notion:", "Notion :"];
-const ADDED_TO_NOTION_MARK = "NOTION_URL: ";
+const ADDED_TO_NOTION_MARK = "NOTION_URL:";
+
+const result: Result = {
+    create_events: [],
+    create_pages: [],
+    delete_events: [],
+    delete_pages: [],
+    update_events: [],
+    update_pages: [],
+};
 
 const events: CalenderEvent[] = itmes[0].json.calendar;
 const pages: NotionPage[] = itmes[0].json.notion;
@@ -89,8 +150,10 @@ for (const page of eventPages) {
                 // update
                 const notionLastEditTime = Date.parse(page.last_edited_time);
                 const eventLastEditTime = Date.parse(event.updated);
+
                 if (notionLastEditTime > eventLastEditTime) {
                     // update evnet
+
                 } else {
                     // update page
                 }
