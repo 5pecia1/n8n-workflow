@@ -81,7 +81,7 @@ type Result = {
 // ======================= set function =======================
 // ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
 function makePageId(event: CalenderEvent): string {
-    const firstLine = event.description.split("\n")[0];
+    const firstLine = (event.description as string).split("\n")[0];
     const lastIndex = firstLine.lastIndexOf("/");
     return firstLine.substring(lastIndex);
 }
@@ -109,7 +109,7 @@ function makeCalenderEventDate(page: NotionPage): CalenderDate {
     const pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);
     const pageEnd: number | null = !page[NOTION_DATE_PROPERTY_NAME].end
         ? null
-        : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end);
+        : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end as string);
     const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
         && (pageEnd === null // one day
             || (pageEnd - pageStart % ONE_DAY_UNIX_TIME === 0) //or more day
@@ -123,7 +123,7 @@ function makeCalenderEventDate(page: NotionPage): CalenderDate {
         end: {
             dateTime: isPageOneDayAllDAy
                 ? new Date(pageStart + ONE_DAY_UNIX_TIME).toISOString()
-                : new Date(pageEnd).toISOString(),
+                : new Date(pageEnd as number).toISOString(),
         },
     };
 }
@@ -140,7 +140,8 @@ function main(events: CalenderEvent[], pages: NotionPage[]): Result {
     };
     const eventPages = pages.filter(p => p[NOTION_DATE_PROPERTY_NAME]);
     const addToNotionList: CalenderEvent[] = [];
-    const followEventList: [string, CalenderEvent][] = [];
+    const followEventMap = new Map<string, CalenderEvent>();
+
     events.forEach(e => {
         let marked = false;
         for (const mark of ADD_TO_NOTION_MARK) {
@@ -153,16 +154,15 @@ function main(events: CalenderEvent[], pages: NotionPage[]): Result {
             addToNotionList.push(e);
         }
 
-        if (e.description, e.description.startsWith(ADDED_TO_NOTION_MARK)) {
-            followEventList.push([e.id, e]);
+        if (e.description && e.description.startsWith(ADDED_TO_NOTION_MARK)) {
+            followEventMap.set(e.id, e);
         }
     });
-    const followEventMap = new Map(followEventList);
 
 
     for (const page of eventPages) {
         const pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);
-        const pageEnd: number | null = !page[NOTION_DATE_PROPERTY_NAME].end ? null : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end);
+        const pageEnd: number | null = !page[NOTION_DATE_PROPERTY_NAME].end ? null : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end as string);
         const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
             && (pageEnd === null // one day
                 || (pageEnd - pageStart % ONE_DAY_UNIX_TIME === 0) //or more day
@@ -173,14 +173,14 @@ function main(events: CalenderEvent[], pages: NotionPage[]): Result {
         if (gcalIdInPage) {
             const event = followEventMap.get(gcalIdInPage);
 
-            const eventStart = Date.parse(event.start.dateTime);
-            const eventEnd = Date.parse(event.end.dateTime);
-            const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
-                && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
-            const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
-
             if (event) {
+                const eventStart = Date.parse(event.start.dateTime);
+                const eventEnd = Date.parse(event.end.dateTime);
+                const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
+                    && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
+                const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
                 const pageIdInEvent = makePageId(event);
+
                 followEventMap.delete(gcalIdInPage);
 
                 // check diff
@@ -228,14 +228,14 @@ function main(events: CalenderEvent[], pages: NotionPage[]): Result {
         }
     }
 
-    for (const event of followEventMap.values()) {
+    for (const [_, event] of Array.from(followEventMap)) {
         // delete in gcal
         result.delete_events.push({
             id: event.id,
         });
     }
 
-    for (const event of addToNotionList.values()) {
+    for (const [_, event] of Array.from(followEventMap)) {
         // add to notion
         result.create_pages.push({
             name: event.summary,
