@@ -1,19 +1,34 @@
 const itmes: any = {};
 
+// ======================= set const =======================
+const ONE_DAY_UNIX_TIME = 86400000;
+const ADD_TO_NOTION_MARK = ["notion:", "notion :", "Notion:", "Notion :"];
+const ADDED_TO_NOTION_MARK = "NOTION_URL:";
+const NOTION_LAST_EDITED_TIME_PROPERTY_NAME = "Last Edited Time";
+const NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
+const NOTION_DATE_PROPERTY_NAME = "FIX-End";
+
+// ======================= set type =======================
+type CalenderDate = {
+    start: {
+        dateTime: string;
+    };
+    end: {
+        dateTime: string;
+    };
+}
+
+type NotionDate = {
+    start: string;
+    end: string | null;
+}
+
 type NotionPage = {
     id: string;
-    last_edited_time: string;
-    properties: {
-        "GCal-Id": {
-            text: string;
-        };
-        "FIX-End": {
-            date: {
-                start: string;
-                end: string;
-            };
-        };
-    };
+    [NOTION_LAST_EDITED_TIME_PROPERTY_NAME]: string
+    [NOTION_GCAL_ID_PROPERTY_NAME]: string;
+    [NOTION_DATE_PROPERTY_NAME]: NotionDate;
+    Name: string;
 };
 
 type CalenderEvent = {
@@ -21,45 +36,28 @@ type CalenderEvent = {
     updated: string;
     summary: string;
     description?: string;
-    start: {
-        dateTime: string;
-    };
-    end: {
-        dateTime: string;
-    };
-};
+} & CalenderDate;
 
 type CreateEvent = {
-    date: {
-        start: string;
-        end: string;
-    };
     summary: string;
     description: string;
-};
+} & CalenderDate;
+
 type CreatePage = {
-    date: {
-        start: string;
-        end: string;
-    };
-    "GCal-Id": string;
+    date: NotionDate;
+    gcal_id: string;
     name: string;
 };
 
 type UpdateEvent = {
-    date: {
-        start: string;
-        end: string;
-    };
+    id: string;
     summary: string;
-};
+} & CalenderDate;
 
 type UpdatePage = {
-    date: {
-        start: string;
-        end: string;
-    };
+    id: string;
     name: string;
+    date: NotionDate;
 };
 
 type DeleteEvent = {
@@ -80,96 +78,178 @@ type Result = {
     delete_pages: DeletePage[];
 };
 
-const ONE_DAY_UNIX_TIME = 86400000;
-const ADD_TO_NOTION_MARK = ["notion:", "notion :", "Notion:", "Notion :"];
-const ADDED_TO_NOTION_MARK = "NOTION_URL:";
+// ======================= set function =======================
+// ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
+function makePageId(event: CalenderEvent): string {
+    const firstLine = event.description.split("\n")[0];
+    const lastIndex = firstLine.lastIndexOf("/");
+    return firstLine.substring(lastIndex);
+}
 
-const result: Result = {
-    create_events: [],
-    create_pages: [],
-    delete_events: [],
-    delete_pages: [],
-    update_events: [],
-    update_pages: [],
-};
+function makeEventDescription(page: NotionPage): string {
+    return `${ADD_TO_NOTION_MARK} https://notion.so/${page.id}`;
+}
 
-const events: CalenderEvent[] = itmes[0].json.calendar;
-const pages: NotionPage[] = itmes[0].json.notion;
+function makeNotionPageDate(event: CalenderEvent): NotionDate {
+    const eventStart = Date.parse(event.start.dateTime);
+    const eventEnd = Date.parse(event.end.dateTime);
+    const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
+        && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
+    const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
 
-const eventPages = pages.filter(p => p["FIX-End"]);
-const addToNotionList: CalenderEvent[] = [];
-const followEventList: [string, CalenderEvent][] = [];
-events.forEach(e => {
-    let marked = false;
-    for (const mark of ADD_TO_NOTION_MARK) {
-        if (e.summary.startsWith(mark)) {
-            marked = true;
-            break;
-        }
-    }
-    if (marked) {
-        addToNotionList.push(e);
-    }
+    return {
+        start: new Date(eventStart).toISOString(),
+        end: isEventOneDayAllDay
+            ? null
+            : new Date(eventEnd).toISOString(),
+    };
+}
 
-    if (e.description, e.description.startsWith(ADDED_TO_NOTION_MARK)) {
-        followEventList.push([e.id, e]);
-    }
-});
-const followEventMap = new Map(followEventList);
-
-for (const page of eventPages) {
-    const pageStart = Date.parse(page.properties["FIX-End"].date.start);
-    const pageEnd: number | null = !page.properties["FIX-End"].date.end ? null : Date.parse(page.properties["FIX-End"].date.end);
+function makeCalenderEventDate(page: NotionPage): CalenderDate {
+    const pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);
+    const pageEnd: number | null = !page[NOTION_DATE_PROPERTY_NAME].end
+        ? null
+        : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end);
     const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
         && (pageEnd === null // one day
             || (pageEnd - pageStart % ONE_DAY_UNIX_TIME === 0) //or more day
         );
     const isPageOneDayAllDAy = isPageAllDay && pageEnd === null;
 
-    const gcalIdInPage = page.properties["GCal Id"];
-    if (gcalIdInPage) {
-        const event = followEventMap.get(gcalIdInPage.text);
+    return {
+        start: {
+            dateTime: new Date(pageStart).toISOString(),
+        },
+        end: {
+            dateTime: isPageOneDayAllDAy
+                ? new Date(pageStart + ONE_DAY_UNIX_TIME).toISOString()
+                : new Date(pageEnd).toISOString(),
+        },
+    };
+}
 
-        const eventStart = Date.parse(event.start.dateTime);
-        const eventEnd = Date.parse(event.end.dateTime);
-        const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
-            && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
-        const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
+// ======================= set main function =======================
+function main(events: CalenderEvent[], pages: NotionPage[]): Result {
+    const result: Result = {
+        create_events: [],
+        create_pages: [],
+        delete_events: [],
+        delete_pages: [],
+        update_events: [],
+        update_pages: [],
+    };
+    const eventPages = pages.filter(p => p["FIX-End"]);
+    const addToNotionList: CalenderEvent[] = [];
+    const followEventList: [string, CalenderEvent][] = [];
+    events.forEach(e => {
+        let marked = false;
+        for (const mark of ADD_TO_NOTION_MARK) {
+            if (e.summary.startsWith(mark)) {
+                marked = true;
+                break;
+            }
+        }
+        if (marked) {
+            addToNotionList.push(e);
+        }
 
-        if (event) {
-            followEventMap.delete(gcalIdInPage.text);
-            // check diff
-            if (
-                (pageStart != eventStart) // start time
-                || (isPageOneDayAllDAy != isEventOneDayAllDay) // one day 
-                || (!isPageOneDayAllDAy && (pageEnd != eventEnd)) // end time
-            ) {
-                // same event
-                // do nothing
-            } else {
-                // update
-                const notionLastEditTime = Date.parse(page.last_edited_time);
-                const eventLastEditTime = Date.parse(event.updated);
+        if (e.description, e.description.startsWith(ADDED_TO_NOTION_MARK)) {
+            followEventList.push([e.id, e]);
+        }
+    });
+    const followEventMap = new Map(followEventList);
 
-                if (notionLastEditTime > eventLastEditTime) {
-                    // update evnet
 
+    for (const page of eventPages) {
+        const pageStart = Date.parse(page["FIX-End"].start);
+        const pageEnd: number | null = !page["FIX-End"].end ? null : Date.parse(page["FIX-End"].end);
+        const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
+            && (pageEnd === null // one day
+                || (pageEnd - pageStart % ONE_DAY_UNIX_TIME === 0) //or more day
+            );
+        const isPageOneDayAllDAy = isPageAllDay && pageEnd === null;
+
+        const gcalIdInPage = page["GCal Id"];
+        if (gcalIdInPage) {
+            const event = followEventMap.get(gcalIdInPage);
+
+            const eventStart = Date.parse(event.start.dateTime);
+            const eventEnd = Date.parse(event.end.dateTime);
+            const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
+                && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
+            const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
+
+            if (event) {
+                const pageIdInEvent = makePageId(event);
+                followEventMap.delete(gcalIdInPage);
+
+                // check diff
+                if (
+                    (pageStart != eventStart) // start time
+                    || (isPageOneDayAllDAy != isEventOneDayAllDay) // one day 
+                    || (!isPageOneDayAllDAy && (pageEnd != eventEnd)) // end time
+                ) {
+                    // same event
+                    // do nothing
                 } else {
-                    // update page
+                    // update
+                    const notionLastEditTime = Date.parse(page[NOTION_LAST_EDITED_TIME_PROPERTY_NAME]);
+                    const eventLastEditTime = Date.parse(event.updated);
+
+                    if (notionLastEditTime > eventLastEditTime) {
+                        // update evnet
+                        result.update_events.push({
+                            id: page[NOTION_GCAL_ID_PROPERTY_NAME],
+                            summary: page.Name,
+                            ...makeCalenderEventDate(page),
+                        });
+                    } else {
+                        // update page
+                        result.update_pages.push({
+                            id: pageIdInEvent,
+                            date: makeNotionPageDate(event),
+                            name: page.Name
+                        });
+                    }
                 }
+            } else {
+                // delete event in page
+                result.delete_pages.push({
+                    id: page.id,
+                });
             }
         } else {
-            // deleted event in page
+            //add to gcal
+            result.create_events.push({
+                description: makeEventDescription(page),
+                summary: page.Name,
+                ...makeCalenderEventDate(page),
+            });
         }
-    } else {
-        //add to gcal
     }
+
+    for (const event of followEventMap.values()) {
+        // delete in gcal
+        result.delete_events.push({
+            id: event.id,
+        });
+    }
+
+    for (const event of addToNotionList.values()) {
+        // add to notion
+        result.create_pages.push({
+            name: event.summary,
+            gcal_id: event.id,
+            date: makeNotionPageDate(event),
+        });
+    }
+
+    return result;
 }
 
-for (const event of followEventMap.values()) {
-    // delete in gcal
-}
+const events: CalenderEvent[] = itmes[0].json.calendar;
+const pages: NotionPage[] = itmes[0].json.notion;
 
-for (const event of addToNotionList.values()) {
-    // add to notion
-}
+const result = main(events, pages);
+
+// return result;
