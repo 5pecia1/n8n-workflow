@@ -1,6 +1,6 @@
 // ======================= set const =======================
 const ONE_DAY_UNIX_TIME = 86400000;
-const ADD_TO_NOTION_MARK = ["notion:", "notion :", "Notion:", "Notion :"];
+const ADD_TO_NOTION_MARK = ["notion: ", "notion : ", "Notion: ", "Notion : ", "notion:", "notion :", "Notion:", "Notion :"];
 const ADDED_TO_NOTION_MARK = "NOTION_URL:";
 const NOTION_LAST_EDITED_TIME_PROPERTY_NAME = "Last Edited Time";
 const NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
@@ -46,6 +46,7 @@ type CreateEvent = {
 type CreatePage = {
     date: NotionDate;
     gcal_id: string;
+    event_description: string;
     name: string;
 };
 
@@ -103,7 +104,7 @@ function makePageState(page: NotionPage): PageState {
         : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end as string);
     const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
         && (pageEnd === null // one day
-            || (pageEnd - pageStart % ONE_DAY_UNIX_TIME === 0) //or more day
+            || ((pageEnd - pageStart) % ONE_DAY_UNIX_TIME === 0) //or more day
         );
     const isPageOneDayAllDAy = isPageAllDay && pageEnd === null;
 
@@ -119,7 +120,7 @@ function makeEventState(event: CalenderEvent): EventState {
     const eventStart = Date.parse(event.start.dateTime || event.start.date as string);
     const eventEnd = Date.parse(event.end.dateTime || event.end.date as string);
     const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
-        && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
+        && (eventEnd - eventStart) % ONE_DAY_UNIX_TIME === 0;  // one or more day
     const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
 
     return {
@@ -192,15 +193,12 @@ function main(n8nItems: any): Result {
     const followEventMap = new Map<string, CalenderEvent>();
 
     events.forEach(e => {
-        let marked = false;
         for (const mark of ADD_TO_NOTION_MARK) {
             if (e.summary.startsWith(mark)) {
-                marked = true;
+                addToNotionList.push(e);
+                e.summary = e.summary.substring(mark.length);
                 break;
             }
-        }
-        if (marked) {
-            addToNotionList.push(e);
         }
 
         if (e.description && e.description.startsWith(ADDED_TO_NOTION_MARK)) {
@@ -277,8 +275,9 @@ function main(n8nItems: any): Result {
     for (const event of Array.from(addToNotionList)) {
         // add to notion
         result.create_pages.push({
-            name: event.summary.substring(ADDED_TO_NOTION_MARK.length),
+            name: event.summary,
             gcal_id: event.id,
+            event_description: event.description || "",
             date: makeNotionPageDate(event),
         });
     }

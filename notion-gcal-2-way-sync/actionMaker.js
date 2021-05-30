@@ -181,3 +181,4 @@ function main(n8nItems) {
             json: result,
         }];
 }
+return main(items)

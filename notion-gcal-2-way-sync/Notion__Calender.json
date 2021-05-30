@@ -1,0 +1,788 @@
+{
+  "name": "Notion, Calender",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        200,
+        750
+      ]
+    },
+    {
+      "parameters": {},
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [
+        750,
+        730
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "2ad4848e-ab72-4165-8086-0d1d2efc34c6",
+        "returnAll": true,
+        "options": {
+          "sort": {
+            "sortValue": [
+              {
+                "timestamp": true,
+                "key": "last_edited_time",
+                "direction": "descending"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Get Notion ",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        400,
+        830
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "returnAll": true,
+        "options": {}
+      },
+      "name": "Get Calender",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        400,
+        640
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{json:{\"calendar\": items.map(i => i.json)}}];\n"
+      },
+      "name": "Map ",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        550,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{json:{\"notion\": items.map(i => i.json)}}];\n"
+      },
+      "name": "Map",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        550,
+        830
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\"use strict\";\nvar __assign = (this && this.__assign) || function () {\n    __assign = Object.assign || function(t) {\n        for (var s, i = 1, n = arguments.length; i < n; i++) {\n            s = arguments[i];\n            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))\n                t[p] = s[p];\n        }\n        return t;\n    };\n    return __assign.apply(this, arguments);\n};\n// ======================= set const =======================\nvar ONE_DAY_UNIX_TIME = 86400000;\nvar ADD_TO_NOTION_MARK = [\"notion: \", \"notion : \", \"Notion: \", \"Notion : \", \"notion:\", \"notion :\", \"Notion:\", \"Notion :\"];\nvar ADDED_TO_NOTION_MARK = \"NOTION_URL:\";\nvar NOTION_LAST_EDITED_TIME_PROPERTY_NAME = \"Last Edited Time\";\nvar NOTION_GCAL_ID_PROPERTY_NAME = \"GCal Id\";\nvar NOTION_DATE_PROPERTY_NAME = \"FIX-End\";\n// ======================= set function =======================\nfunction makePageState(page) {\n    var pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);\n    var pageEnd = !page[NOTION_DATE_PROPERTY_NAME].end\n        ? null\n        : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end);\n    var isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight\n        && (pageEnd === null // one day\n            || ((pageEnd - pageStart) % ONE_DAY_UNIX_TIME === 0) //or more day\n        );\n    var isPageOneDayAllDAy = isPageAllDay && pageEnd === null;\n    return {\n        pageStart: pageStart,\n        pageEnd: pageEnd,\n        isPageAllDay: isPageAllDay,\n        isPageOneDayAllDAy: isPageOneDayAllDAy,\n    };\n}\nfunction makeEventState(event) {\n    var eventStart = Date.parse(event.start.dateTime || event.start.date);\n    var eventEnd = Date.parse(event.end.dateTime || event.end.date);\n    var isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight\n        && (eventEnd - eventStart) % ONE_DAY_UNIX_TIME === 0; // one or more day\n    var isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;\n    return {\n        eventStart: eventStart,\n        eventEnd: eventEnd,\n        isEventAllDay: isEventAllDay,\n        isEventOneDayAllDay: isEventOneDayAllDay,\n    };\n}\n// ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>\nfunction makePageId(event) {\n    var firstLine = event.description.split(\"\\n\")[0];\n    var lastIndex = firstLine.lastIndexOf(\"/\");\n    return firstLine.substring(lastIndex);\n}\nfunction makeEventDescription(page) {\n    return ADDED_TO_NOTION_MARK + \" https://notion.so/\" + page.id;\n}\nfunction makeNotionPageDate(event) {\n    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventOneDayAllDay = _a.isEventOneDayAllDay;\n    return {\n        start: new Date(eventStart).toISOString(),\n        end: isEventOneDayAllDay\n            ? null\n            : new Date(eventEnd).toISOString(),\n    };\n}\nfunction makeCalenderEventDate(page) {\n    var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageAllDay = _a.isPageAllDay;\n    var result = {\n        start: {},\n        end: {},\n    };\n    if (isPageAllDay) {\n        var startDate = new Date(pageStart).toISOString();\n        result.start.date = startDate.substring(0, startDate.indexOf(\"T\"));\n        var endDate = new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString();\n        result.end.date = endDate.substring(0, endDate.indexOf(\"T\"));\n    }\n    else {\n        result.start.dateTime = new Date(pageStart).toISOString();\n        result.end.dateTime = new Date(pageEnd).toISOString();\n    }\n    return result;\n}\n// ======================= set main function =======================\nfunction main(n8nItems) {\n    var events = n8nItems[0].json.calendar;\n    var pages = n8nItems[1].json.notion;\n    var result = {\n        create_events: [],\n        create_pages: [],\n        delete_events: [],\n        delete_pages: [],\n        update_events: [],\n        update_pages: [],\n    };\n    var eventPages = pages.filter(function (p) { return p[NOTION_DATE_PROPERTY_NAME]; });\n    var addToNotionList = [];\n    var followEventMap = new Map();\n    events.forEach(function (e) {\n        for (var _i = 0, ADD_TO_NOTION_MARK_1 = ADD_TO_NOTION_MARK; _i < ADD_TO_NOTION_MARK_1.length; _i++) {\n            var mark = ADD_TO_NOTION_MARK_1[_i];\n            if (e.summary.startsWith(mark)) {\n                addToNotionList.push(e);\n                e.summary = e.summary.substring(mark.length);\n                break;\n            }\n        }\n        if (e.description && e.description.startsWith(ADDED_TO_NOTION_MARK)) {\n            followEventMap.set(e.id, e);\n        }\n    });\n    for (var _i = 0, eventPages_1 = eventPages; _i < eventPages_1.length; _i++) {\n        var page = eventPages_1[_i];\n        var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageOneDayAllDAy = _a.isPageOneDayAllDAy;\n        var gcalIdInPage = page[NOTION_GCAL_ID_PROPERTY_NAME];\n        if (gcalIdInPage) {\n            var event_1 = followEventMap.get(gcalIdInPage);\n            if (event_1) {\n                var _b = makeEventState(event_1), eventStart = _b.eventStart, eventEnd = _b.eventEnd, isEventOneDayAllDay = _b.isEventOneDayAllDay;\n                var pageIdInEvent = makePageId(event_1);\n                followEventMap.delete(gcalIdInPage);\n                // check diff\n                if ((pageStart != eventStart) // start time\n                    || (isPageOneDayAllDAy != isEventOneDayAllDay) // one day \n                    || (!isPageOneDayAllDAy && (pageEnd != eventEnd)) // end time\n                ) {\n                    // same event\n                    // do nothing\n                }\n                else {\n                    // update\n                    var notionLastEditTime = Date.parse(page[NOTION_LAST_EDITED_TIME_PROPERTY_NAME]);\n                    var eventLastEditTime = Date.parse(event_1.updated);\n                    if (notionLastEditTime > eventLastEditTime) {\n                        // update evnet\n                        result.update_events.push(__assign({ id: page[NOTION_GCAL_ID_PROPERTY_NAME], summary: page.Name }, makeCalenderEventDate(page)));\n                    }\n                    else {\n                        // update page\n                        result.update_pages.push({\n                            id: pageIdInEvent,\n                            date: makeNotionPageDate(event_1),\n                            name: page.Name\n                        });\n                    }\n                }\n            }\n            else {\n                // delete event in page\n                result.delete_pages.push({\n                    id: page.id,\n                });\n            }\n        }\n        else {\n            //add to gcal\n            result.create_events.push(__assign({ description: makeEventDescription(page), summary: page.Name }, makeCalenderEventDate(page)));\n        }\n    }\n    for (var _c = 0, _d = Array.from(followEventMap); _c < _d.length; _c++) {\n        var _e = _d[_c], _ = _e[0], event_2 = _e[1];\n        // delete in gcal\n        result.delete_events.push({\n            id: event_2.id,\n        });\n    }\n    for (var _f = 0, _g = Array.from(addToNotionList); _f < _g.length; _f++) {\n        var event_3 = _g[_f];\n        // add to notion\n        result.create_pages.push({\n            name: event_3.summary,\n            gcal_id: event_3.id,\n            event_description: event_3.description || \"\",\n            date: makeNotionPageDate(event_3),\n        });\n    }\n    return [{\n            json: result,\n        }];\n}\nreturn main(items)\n\n"
+      },
+      "name": "Action Maker",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        950,
+        730
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"create_events\";\nconst params = items[0].json[KEY];\nconst staticData = this.getWorkflowStaticData(\"node\");\n\nlet pages;\nif (params) {\n    pages = params;\n} else {\n    pages = staticData[KEY];\n}\n\nif (pages.length > 0) {\n    const result = pages.pop();\n    staticData[KEY] = pages;\n\n    return [{ json: result }];\n} else {\n    return [];\n}\n"
+      },
+      "name": "Loop Create Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"delete_pages\";\nconst params = items[0].json[KEY];\nconst staticData = this.getWorkflowStaticData(\"node\");\n\nlet pages;\nif (params) {\n    pages = params;\n} else {\n    pages = staticData[KEY];\n}\n\nif (pages.length > 0) {\n    const result = pages.pop();\n    staticData[KEY] = pages;\n\n    return [{ json: result }];\n} else {\n    return [];\n}\n"
+      },
+      "name": "Loop Delete Pages",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        1100
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"delete_events\";\nconst params = items[0].json[KEY];\nconst staticData = this.getWorkflowStaticData(\"node\");\n\nlet pages;\nif (params) {\n    pages = params;\n} else {\n    pages = staticData[KEY];\n}\n\nif (pages.length > 0) {\n    const result = pages.pop();\n    staticData[KEY] = pages;\n\n    return [{ json: result }];\n} else {\n    return [];\n}\n"
+      },
+      "name": "Loop Delete Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": "2k0j3ov0kr12u3ve9on72v7k88@group.calendar.google.com",
+        "options": {}
+      },
+      "name": "Create Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        470
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "updateFields": {}
+      },
+      "name": "Update Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        820
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update"
+      },
+      "name": "Update Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        650
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": "mgnl1jk9m8hg3k73q4lobqj1io@group.calendar.google.com",
+        "limit": 5,
+        "options": {}
+      },
+      "name": "Delete Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        1170
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update"
+      },
+      "name": "Delete Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        990
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        }
+      },
+      "name": "Cron1",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        220,
+        1050
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"create_pages\";\nconst params = items[0].json[KEY];\n\nconst staticData = this.getWorkflowStaticData(\"node\");\n\nlet pages;\nif (params) {\n    pages = params;\n} else {\n    pages = staticData[KEY];\n}\n\nif (pages.length > 0) {\n    const result = pages.pop();\n    this.getWorkflowStaticData(\"global\")[KEY] = result;\n    staticData[KEY] = pages;\n\n    return [{ json: result }];\n} else {\n    return [];\n}\n"
+      },
+      "name": "Loop Create Pages",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"update_pages\";\nconst params = items[0].json[KEY];\nconst staticData = this.getWorkflowStaticData(\"node\");\n\nlet pages;\nif (params) {\n    pages = params;\n} else {\n    pages = staticData[KEY];\n}\n\nif (pages.length > 0) {\n    const result = pages.pop();\n    staticData[KEY] = pages;\n\n    return [{ json: result }];\n} else {\n    return [];\n}\n"
+      },
+      "name": "Loop Update Pages",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        750
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"update_events\";\nconst params = items[0].json[KEY];\nconst staticData = this.getWorkflowStaticData(\"node\");\n\nlet pages;\nif (params) {\n    pages = params;\n} else {\n    pages = staticData[KEY];\n}\n\nif (pages.length > 0) {\n    const result = pages.pop();\n    staticData[KEY] = pages;\n\n    return [{ json: result }];\n} else {\n    return [];\n}\n"
+      },
+      "name": "Loop Update Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "eventId": "={{$json[\"gcal_id\"]}}",
+        "updateFields": {
+          "description": "={{$json[\"description\"]}}",
+          "summary": "={{$json[\"name\"]}}"
+        }
+      },
+      "name": "Update Description",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        1950,
+        300
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const KEY = \"create_pages\";\nconst data = this.getWorkflowStaticData(\"global\")[KEY];\nthis.getWorkflowStaticData(\"global\")[KEY] = undefined;\n\nreturn [{\n    json: {\n        name: data.name,\n        gcal_id: data.gcal_id,\n        description: 'NOTION_URL:' + items[0].json.id + '\\n' + data.event_description,\n    }\n}];\n"
+      },
+      "name": "Add Notion Id In Event",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1750,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "name": "Merge2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        470
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "name": "Add Notion Id In Event1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1750,
+        470
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "propertiesUi": {
+          "propertyValues": [
+            {},
+            {}
+          ]
+        }
+      },
+      "name": "Create Page1",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1950,
+        470
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": "2ad4848e-ab72-4165-8086-0d1d2efc34c6",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "FIX-End|date",
+              "range": true,
+              "dateStart": "={{$json[\"date\"][\"start\"]}}",
+              "dateEnd": "={{$json[\"date\"][\"end\"]}}"
+            },
+            {
+              "key": "GCal Id|rich_text",
+              "textContent": "={{$json[\"gcal_id\"]}}"
+            },
+            {
+              "key": "Name|title",
+              "title": "={{$json[\"name\"]}}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": []
+        }
+      },
+      "name": "Create Page Range Date",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        300
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "string": [
+            {
+              "value1": "={{$json[\"date\"][\"end\"]}}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "name": "IF Range",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": "2ad4848e-ab72-4165-8086-0d1d2efc34c6",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "FIX-End|date",
+              "date": "={{$json[\"date\"][\"start\"]}}"
+            },
+            {
+              "key": "GCal Id|rich_text",
+              "textContent": "={{$json[\"gcal_id\"]}}"
+            },
+            {
+              "key": "Name|title",
+              "title": "={{$json[\"name\"]}}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": []
+        }
+      },
+      "name": "Create Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        120
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Notion ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Calender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Notion ": {
+      "main": [
+        [
+          {
+            "node": "Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Calender": {
+      "main": [
+        [
+          {
+            "node": "Map ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map ": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Action Maker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Create Events": {
+      "main": [
+        [
+          {
+            "node": "Create Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Action Maker": {
+      "main": [
+        [
+          {
+            "node": "Loop Create Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Update Pages",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Update Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Delete Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Create Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Page": {
+      "main": [
+        [
+          {
+            "node": "Loop Update Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Delete Events": {
+      "main": [
+        [
+          {
+            "node": "Delete Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Event": {
+      "main": [
+        [
+          {
+            "node": "Loop Update Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Event": {
+      "main": [
+        [
+          {
+            "node": "Loop Delete Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Delete Pages": {
+      "main": [
+        [
+          {
+            "node": "Delete Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Page": {
+      "main": [
+        [
+          {
+            "node": "Loop Delete Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Create Pages": {
+      "main": [
+        [
+          {
+            "node": "IF Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Update Pages": {
+      "main": [
+        [
+          {
+            "node": "Update Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Update Events": {
+      "main": [
+        [
+          {
+            "node": "Update Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Notion Id In Event": {
+      "main": [
+        [
+          {
+            "node": "Update Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Add Notion Id In Event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Notion Id In Event1": {
+      "main": [
+        [
+          {
+            "node": "Create Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Page1": {
+      "main": [
+        [
+          {
+            "node": "Loop Create Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Page Range Date": {
+      "main": [
+        [
+          {
+            "node": "Add Notion Id In Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Range": {
+      "main": [
+        [
+          {
+            "node": "Create Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Page Range Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Page": {
+      "main": [
+        [
+          {
+            "node": "Add Notion Id In Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Description": {
+      "main": [
+        [
+          {
+            "node": "Loop Create Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "3"
+}
