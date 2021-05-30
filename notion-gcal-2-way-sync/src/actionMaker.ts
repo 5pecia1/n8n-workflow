@@ -1,5 +1,3 @@
-const itmes: any = {};
-
 // ======================= set const =======================
 const ONE_DAY_UNIX_TIME = 86400000;
 const ADD_TO_NOTION_MARK = ["notion:", "notion :", "Notion:", "Notion :"];
@@ -11,10 +9,12 @@ const NOTION_DATE_PROPERTY_NAME = "FIX-End";
 // ======================= set type =======================
 type CalenderDate = {
     start: {
-        dateTime: string;
+        dateTime?: string;
+        date?: string;
     };
     end: {
-        dateTime: string;
+        dateTime?: string;
+        date?: string;
     };
 }
 
@@ -68,7 +68,22 @@ type DeletePage = {
     id: string;
 };
 
-type Result = {
+type PageState = {
+    pageStart: number;
+    pageEnd: number | null;
+    isPageAllDay: boolean;
+    isPageOneDayAllDAy: boolean;
+}
+
+type EventState = {
+    eventStart: number;
+    eventEnd: number;
+    isEventAllDay: boolean;
+    isEventOneDayAllDay: boolean;
+}
+
+
+type Actions = {
     create_events: CreateEvent[];
     create_pages: CreatePage[];
     update_events: UpdateEvent[];
@@ -78,34 +93,10 @@ type Result = {
     delete_pages: DeletePage[];
 };
 
+type Result = { json: Actions }[];
+
 // ======================= set function =======================
-// ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
-function makePageId(event: CalenderEvent): string {
-    const firstLine = (event.description as string).split("\n")[0];
-    const lastIndex = firstLine.lastIndexOf("/");
-    return firstLine.substring(lastIndex);
-}
-
-function makeEventDescription(page: NotionPage): string {
-    return `${ADD_TO_NOTION_MARK} https://notion.so/${page.id}`;
-}
-
-function makeNotionPageDate(event: CalenderEvent): NotionDate {
-    const eventStart = Date.parse(event.start.dateTime);
-    const eventEnd = Date.parse(event.end.dateTime);
-    const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
-        && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
-    const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
-
-    return {
-        start: new Date(eventStart).toISOString(),
-        end: isEventOneDayAllDay
-            ? null
-            : new Date(eventEnd).toISOString(),
-    };
-}
-
-function makeCalenderEventDate(page: NotionPage): CalenderDate {
+function makePageState(page: NotionPage): PageState {
     const pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);
     const pageEnd: number | null = !page[NOTION_DATE_PROPERTY_NAME].end
         ? null
@@ -117,20 +108,78 @@ function makeCalenderEventDate(page: NotionPage): CalenderDate {
     const isPageOneDayAllDAy = isPageAllDay && pageEnd === null;
 
     return {
-        start: {
-            dateTime: new Date(pageStart).toISOString(),
-        },
-        end: {
-            dateTime: isPageOneDayAllDAy
-                ? new Date(pageStart + ONE_DAY_UNIX_TIME).toISOString()
-                : new Date(pageEnd as number).toISOString(),
-        },
+        pageStart: pageStart,
+        pageEnd: pageEnd,
+        isPageAllDay: isPageAllDay,
+        isPageOneDayAllDAy: isPageOneDayAllDAy,
     };
 }
 
+function makeEventState(event: CalenderEvent): EventState {
+    const eventStart = Date.parse(event.start.dateTime || event.start.date as string);
+    const eventEnd = Date.parse(event.end.dateTime || event.end.date as string);
+    const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
+        && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
+    const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
+
+    return {
+        eventStart: eventStart,
+        eventEnd: eventEnd,
+        isEventAllDay: isEventAllDay,
+        isEventOneDayAllDay: isEventOneDayAllDay,
+    };
+}
+
+// ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
+function makePageId(event: CalenderEvent): string {
+    const firstLine = (event.description as string).split("\n")[0];
+    const lastIndex = firstLine.lastIndexOf("/");
+    return firstLine.substring(lastIndex);
+}
+
+function makeEventDescription(page: NotionPage): string {
+    return `${ADDED_TO_NOTION_MARK} https://notion.so/${page.id}`;
+}
+
+function makeNotionPageDate(event: CalenderEvent): NotionDate {
+    const { eventStart, eventEnd, isEventOneDayAllDay } = makeEventState(event);
+
+    return {
+        start: new Date(eventStart).toISOString(),
+        end: isEventOneDayAllDay
+            ? null
+            : new Date(eventEnd).toISOString(),
+    };
+}
+
+function makeCalenderEventDate(page: NotionPage): CalenderDate {
+    const { pageStart, pageEnd, isPageAllDay } = makePageState(page);
+
+    const result: CalenderDate = {
+        start: {},
+        end: {},
+    };
+
+    if (isPageAllDay) {
+        const startDate = new Date(pageStart).toISOString();
+        result.start.date = startDate.substring(0, startDate.indexOf("T"));
+
+        const endDate = new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString();
+        result.end.date = endDate.substring(0, endDate.indexOf("T"));
+    } else {
+        result.start.dateTime = new Date(pageStart).toISOString();
+        result.end.dateTime = new Date(pageEnd as number).toISOString();
+    }
+
+    return result;
+}
+
 // ======================= set main function =======================
-function main(events: CalenderEvent[], pages: NotionPage[]): Result {
-    const result: Result = {
+function main(n8nItems: any): Result {
+    const events: CalenderEvent[] = n8nItems[0].json.calendar;
+    const pages: NotionPage[] = n8nItems[1].json.notion;
+
+    const result: Actions = {
         create_events: [],
         create_pages: [],
         delete_events: [],
@@ -161,24 +210,14 @@ function main(events: CalenderEvent[], pages: NotionPage[]): Result {
 
 
     for (const page of eventPages) {
-        const pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);
-        const pageEnd: number | null = !page[NOTION_DATE_PROPERTY_NAME].end ? null : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end as string);
-        const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
-            && (pageEnd === null // one day
-                || (pageEnd - pageStart % ONE_DAY_UNIX_TIME === 0) //or more day
-            );
-        const isPageOneDayAllDAy = isPageAllDay && pageEnd === null;
+        const { pageStart, pageEnd, isPageOneDayAllDAy } = makePageState(page);
 
         const gcalIdInPage = page[NOTION_GCAL_ID_PROPERTY_NAME];
         if (gcalIdInPage) {
             const event = followEventMap.get(gcalIdInPage);
 
             if (event) {
-                const eventStart = Date.parse(event.start.dateTime);
-                const eventEnd = Date.parse(event.end.dateTime);
-                const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
-                    && eventEnd - eventStart % ONE_DAY_UNIX_TIME === 0;  // one or more day
-                const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
+                const { eventStart, eventEnd, isEventOneDayAllDay } = makeEventState(event);
                 const pageIdInEvent = makePageId(event);
 
                 followEventMap.delete(gcalIdInPage);
@@ -235,21 +274,16 @@ function main(events: CalenderEvent[], pages: NotionPage[]): Result {
         });
     }
 
-    for (const [_, event] of Array.from(followEventMap)) {
+    for (const event of Array.from(addToNotionList)) {
         // add to notion
         result.create_pages.push({
-            name: event.summary,
+            name: event.summary.substring(ADDED_TO_NOTION_MARK.length),
             gcal_id: event.id,
             date: makeNotionPageDate(event),
         });
     }
 
-    return result;
+    return [{
+        json: result,
+    }];
 }
-
-const events: CalenderEvent[] = itmes[0].json.calendar;
-const pages: NotionPage[] = itmes[0].json.notion;
-
-const result = main(events, pages);
-
-// return result;

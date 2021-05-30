@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p . && (cp lib/actionMaker.js . && echo \"return main(items)\" >> actionMaker.js)"
   },
   "keywords": [],
   "author": "",
