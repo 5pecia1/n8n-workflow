@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -p . && (cp lib/actionMaker.js . && echo \"return main(items)\" >> actionMaker.js)",
-    "build:copy": "npm run build && cat actionMaker.js | pbcopy",
+    "build-copy": "npm run build && cat actionMaker.js | pbcopy",
     "test": "npm run build && node test.js"
   },
   "keywords": [],

@@ -37,8 +37,14 @@ type NotionPage = {
         [NOTION_LAST_EDITED_TIME_PROPERTY_NAME]: {
             last_edited_time: string;
         };
+        Name: {
+            title: {
+                text: {
+                    content: string;
+                };
+            }[];
+        };
     };
-    Name: string;
 };
 
 type CalenderEvent = {
@@ -48,10 +54,19 @@ type CalenderEvent = {
     description?: string;
 } & CalenderDate;
 
+type CalenderOuputDate = {
+    date: {
+        start: string;
+        end: string;
+        is_all_day: boolean;
+    };
+}
+
 type CreateEvent = {
+    page_id: string;
     summary: string;
     description: string;
-} & CalenderDate;
+} & CalenderOuputDate;
 
 type CreatePage = {
     date: NotionDate;
@@ -63,7 +78,7 @@ type CreatePage = {
 type UpdateEvent = {
     id: string;
     summary: string;
-} & CalenderDate;
+} & CalenderOuputDate;
 
 type UpdatePage = {
     id: string;
@@ -163,26 +178,16 @@ function makeNotionPageDate(event: CalenderEvent): NotionDate {
     };
 }
 
-function makeCalenderEventDate(page: NotionPage): CalenderDate {
+function makeCalenderEventDate(page: NotionPage): CalenderOuputDate {
     const { pageStart, pageEnd, isPageAllDay } = makePageState(page);
 
-    const result: CalenderDate = {
-        start: {},
-        end: {},
+    return {
+        date: {
+            start: new Date(pageStart).toISOString(),
+            end: new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
+            is_all_day: isPageAllDay,
+        },
     };
-
-    if (isPageAllDay) {
-        const startDate = new Date(pageStart).toISOString();
-        result.start.date = startDate.substring(0, startDate.indexOf("T"));
-
-        const endDate = new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString();
-        result.end.date = endDate.substring(0, endDate.indexOf("T"));
-    } else {
-        result.start.dateTime = new Date(pageStart).toISOString();
-        result.end.dateTime = new Date(pageEnd as number).toISOString();
-    }
-
-    return result;
 }
 
 // ======================= set main function =======================
@@ -227,8 +232,9 @@ export function main(n8nItems: any): Result {
     for (const page of eventPages) {
         const { pageStart, pageEnd, isPageOneDayAllDAy } = makePageState(page);
 
-        const gcalIdInPage = page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text;
-        if (gcalIdInPage) {
+        const gcalInfo = page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0];
+        if (gcalInfo) {
+            const gcalIdInPage = gcalInfo.plain_text;
             const event = followEventMap.get(gcalIdInPage);
 
             if (event) {
@@ -241,7 +247,7 @@ export function main(n8nItems: any): Result {
                 if (
                     (pageStart == eventStart) // start time
                     && ((isPageOneDayAllDAy == isEventOneDayAllDay) // one day 
-                    || (!isPageOneDayAllDAy && (pageEnd == eventEnd))) // end time
+                        || (!isPageOneDayAllDAy && (pageEnd == eventEnd))) // end time
                 ) {
                     // same event
                     // do nothing
@@ -254,7 +260,7 @@ export function main(n8nItems: any): Result {
                         // update evnet
                         result.update_events.push({
                             id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text,
-                            summary: page.Name,
+                            summary: page.properties.Name.title[0].text.content,
                             ...makeCalenderEventDate(page),
                         });
                     } else {
@@ -262,7 +268,7 @@ export function main(n8nItems: any): Result {
                         result.update_pages.push({
                             id: pageIdInEvent,
                             date: makeNotionPageDate(event),
-                            name: page.Name
+                            name: page.properties.Name.title[0].text.content,
                         });
                     }
                 }
@@ -275,8 +281,9 @@ export function main(n8nItems: any): Result {
         } else {
             //add to gcal
             result.create_events.push({
+                page_id: page.id,
                 description: makeEventDescription(page),
-                summary: page.Name,
+                summary: page.properties.Name.title[0].text.content,
                 ...makeCalenderEventDate(page),
             });
         }
