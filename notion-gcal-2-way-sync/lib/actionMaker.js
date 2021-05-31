@@ -60,12 +60,18 @@ function makeEventDescription(page) {
     return "" + ADDED_TO_NOTION_MARK + page.id + "\nhttps://notion.so/" + page.id + "\n";
 }
 function makeNotionPageDate(event) {
-    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventOneDayAllDay = _a.isEventOneDayAllDay;
+    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventOneDayAllDay = _a.isEventOneDayAllDay, isEventAllDay = _a.isEventAllDay;
+    var eventStartString = new Date(eventStart).toISOString();
+    var eventEndString = new Date(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd).toISOString();
     return {
-        start: new Date(eventStart).toISOString(),
+        start: isEventAllDay
+            ? eventStartString.substring(0, eventStartString.indexOf("T"))
+            : eventStartString,
         end: isEventOneDayAllDay
             ? null
-            : new Date(eventEnd).toISOString(),
+            : isEventAllDay
+                ? eventEndString.substring(0, eventEndString.indexOf("T"))
+                : eventEndString,
     };
 }
 function makeCalenderEventDate(page) {
@@ -73,7 +79,9 @@ function makeCalenderEventDate(page) {
     return {
         date: {
             start: new Date(pageStart).toISOString(),
-            end: new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
+            end: isPageAllDay
+                ? new Date((pageEnd || pageStart + ONE_DAY_UNIX_TIME) + ONE_DAY_UNIX_TIME).toISOString()
+                : new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
             is_all_day: isPageAllDay,
         },
     };

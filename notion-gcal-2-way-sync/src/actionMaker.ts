@@ -168,13 +168,19 @@ function makeEventDescription(page: NotionPage): string {
 }
 
 function makeNotionPageDate(event: CalenderEvent): NotionDate {
-    const { eventStart, eventEnd, isEventOneDayAllDay } = makeEventState(event);
+    const { eventStart, eventEnd, isEventOneDayAllDay, isEventAllDay } = makeEventState(event);
+    const eventStartString = new Date(eventStart).toISOString();
+    const eventEndString = new Date(isEventAllDay? eventEnd - ONE_DAY_UNIX_TIME : eventEnd).toISOString();
 
     return {
-        start: new Date(eventStart).toISOString(),
+        start: isEventAllDay
+            ? eventStartString.substring(0, eventStartString.indexOf("T"))
+            : eventStartString,
         end: isEventOneDayAllDay
             ? null
-            : new Date(eventEnd).toISOString(),
+            : isEventAllDay
+                ? eventEndString.substring(0, eventEndString.indexOf("T"))
+                : eventEndString,
     };
 }
 
@@ -184,7 +190,9 @@ function makeCalenderEventDate(page: NotionPage): CalenderOuputDate {
     return {
         date: {
             start: new Date(pageStart).toISOString(),
-            end: new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
+            end: isPageAllDay
+                ? new Date((pageEnd || pageStart + ONE_DAY_UNIX_TIME) + ONE_DAY_UNIX_TIME).toISOString()
+                : new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
             is_all_day: isPageAllDay,
         },
     };
