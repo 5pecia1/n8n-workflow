@@ -1,3 +1,14 @@
+/**
+ * gcal 
+ *   all day => yyyy-mm-dd
+ *   with time => iso8601 with timezone(ex. +9)
+ * notion
+ *   all day => yyyy-mm-dd
+ *   with time => iso8601 with timezone(input time zone)
+ * js
+ *   Support for ISO 8601 formats differs in that date-only strings (e.g. "1970-01-01") are treated as UTC, not local.
+ */
+
 // ======================= set const =======================
 const ONE_DAY_UNIX_TIME = 86400000;
 const ADD_TO_NOTION_MARK = ["notion: ", "notion : ", "Notion: ", "Notion : ", "notion:", "notion :", "Notion:", "Notion :"];
@@ -5,6 +16,7 @@ const ADDED_TO_NOTION_MARK = "NOTION_ID: ";
 const NOTION_LAST_EDITED_TIME_PROPERTY_NAME = "Last Edited Time";
 const NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
 const NOTION_DATE_PROPERTY_NAME = "FIX-End";
+const TIME_ZONE = "Asia/Seoul"
 
 // ======================= set type =======================
 type CalenderDate = {
@@ -59,6 +71,7 @@ type CalenderOuputDate = {
         start: string;
         end: string;
         is_all_day: boolean;
+        timezone: string;
     };
 }
 
@@ -122,15 +135,77 @@ type Actions = {
 type Result = { json: Actions }[];
 
 // ======================= set function =======================
+function getTImeZoneOffset(): number {
+    const dateText = Intl.DateTimeFormat([], { timeZone: TIME_ZONE, timeZoneName: "short" }).format(new Date);
+    const timezoneString = dateText.split(" ")[1].slice(3);
+    let timezoneOffsetMin = parseInt(timezoneString.split(':')[0]) * 60;
+
+    if (timezoneString.includes(":")) {
+        timezoneOffsetMin = timezoneOffsetMin + parseInt(timezoneString.split(':')[1]);
+    }
+
+    return timezoneOffsetMin;
+}
+
+function getTimeZone(): string {
+    const timezoneOffsetMin = getTImeZoneOffset();
+
+    let offsetHrs: string | number = Math.abs(timezoneOffsetMin / 60);
+    let offsetMin: string | number = Math.abs(timezoneOffsetMin % 60);
+    let timezoneStandard = 'Z';
+
+    if (offsetHrs < 10) {
+        offsetHrs = '0' + offsetHrs;
+    }
+    if (offsetMin < 10) {
+        offsetMin = '0' + offsetMin;
+    }
+
+    if (timezoneOffsetMin > 0) {
+        timezoneStandard = '+' + offsetHrs + ':' + offsetMin;
+    } else if (timezoneOffsetMin < 0) {
+        timezoneStandard = '-' + offsetHrs + ':' + offsetMin;
+    }
+
+    return timezoneStandard;
+}
+
+function makeIso8601WithTZ(time: number): string {
+    const timezoneOffsetMin = getTImeZoneOffset();
+
+    if (timezoneOffsetMin > 0) {
+        time = time + (Math.abs(timezoneOffsetMin)) * 60 * 1000;
+    } else if (timezoneOffsetMin < 0) {
+        time = time - (Math.abs(timezoneOffsetMin)) * 60 * 1000;
+    }
+
+    const dt = new Date(time).toISOString();
+    const currentDatetime = dt.substring(0, dt.length - 5); // delete '.000Z'
+
+    return currentDatetime + getTimeZone();
+}
+
 function makePageState(page: NotionPage): PageState {
-    const pageStart = Date.parse(page.properties[NOTION_DATE_PROPERTY_NAME].date.start);
-    const pageEnd: number | null = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end
+    const startDateTime = page.properties[NOTION_DATE_PROPERTY_NAME].date.start;
+    const endDateTime: string | null = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end
         ? null
-        : Date.parse(page.properties[NOTION_DATE_PROPERTY_NAME].date.end as string);
-    const isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
-        && (pageEnd === null // one day
-            || ((pageEnd - pageStart) % ONE_DAY_UNIX_TIME === 0) //or more day
+        : page.properties[NOTION_DATE_PROPERTY_NAME].date.end as string;
+
+    const pageStart = Date.parse(
+        startDateTime.includes("T")
+            ? startDateTime
+            : startDateTime + `T00:00:00${getTimeZone()}`
+    );
+    const pageEnd: number | null = !endDateTime
+        ? null
+        : Date.parse(
+            endDateTime.includes("T")
+                ? endDateTime
+                : endDateTime + `T00:00:00${getTimeZone()}`
         );
+
+    const isPageAllDay = !startDateTime.includes("T");
+
     const isPageOneDayAllDAy = isPageAllDay && pageEnd === null;
 
     return {
@@ -142,10 +217,20 @@ function makePageState(page: NotionPage): PageState {
 }
 
 function makeEventState(event: CalenderEvent): EventState {
-    const eventStart = Date.parse(event.start.dateTime || event.start.date as string);
-    const eventEnd = Date.parse(event.end.dateTime || event.end.date as string);
-    const isEventAllDay = new Date(eventStart).setUTCHours(0, 0, 0, 0).valueOf() === eventStart // UTC midnight
-        && (eventEnd - eventStart) % ONE_DAY_UNIX_TIME === 0;  // one or more day
+    const startDateTime = event.start.dateTime || event.start.date as string;
+    const endDateTime = event.end.dateTime || event.end.date as string;
+
+    const eventStart = Date.parse(
+        startDateTime.includes("T")
+            ? startDateTime
+            : startDateTime + `T00:00:00${getTimeZone()}`
+    );
+    const eventEnd = Date.parse(
+        endDateTime.includes("T")
+            ? endDateTime
+            : endDateTime + `T00:00:00${getTimeZone()}`
+    );
+    const isEventAllDay = !!event.start.date;
     const isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;
 
     return {
@@ -158,8 +243,15 @@ function makeEventState(event: CalenderEvent): EventState {
 
 // ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
 function makePageId(event: CalenderEvent): string {
-    const firstLine = (event.description as string).split("\n")[0];
-    // const lastIndex = firstLine.lastIndexOf("\n");
+    const descriptoin = (event.description as string);
+    let firstLine: string;
+
+    if (descriptoin.includes("\n")) {
+        firstLine = descriptoin.substring(0, descriptoin.indexOf("\n"));
+    } else {
+        firstLine = descriptoin.substring(0, descriptoin.indexOf("<br>"));
+    }
+
     return firstLine.substring(ADDED_TO_NOTION_MARK.length);
 }
 
@@ -169,8 +261,8 @@ function makeEventDescription(page: NotionPage): string {
 
 function makeNotionPageDate(event: CalenderEvent): NotionDate {
     const { eventStart, eventEnd, isEventOneDayAllDay, isEventAllDay } = makeEventState(event);
-    const eventStartString = new Date(eventStart).toISOString();
-    const eventEndString = new Date(isEventAllDay? eventEnd - ONE_DAY_UNIX_TIME : eventEnd).toISOString();
+    const eventStartString = makeIso8601WithTZ(eventStart);
+    const eventEndString = makeIso8601WithTZ(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd);
 
     return {
         start: isEventAllDay
@@ -186,14 +278,17 @@ function makeNotionPageDate(event: CalenderEvent): NotionDate {
 
 function makeCalenderEventDate(page: NotionPage): CalenderOuputDate {
     const { pageStart, pageEnd, isPageAllDay } = makePageState(page);
+    const startTime = makeIso8601WithTZ(pageStart);
+    const endTime = isPageAllDay
+        ? makeIso8601WithTZ((pageEnd || pageStart) + ONE_DAY_UNIX_TIME)
+        : makeIso8601WithTZ(pageEnd || pageStart + 60 * 1000 * 30); //add 30 min
 
     return {
         date: {
-            start: new Date(pageStart).toISOString(),
-            end: isPageAllDay
-                ? new Date((pageEnd || pageStart + ONE_DAY_UNIX_TIME) + ONE_DAY_UNIX_TIME).toISOString()
-                : new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
+            start: startTime,
+            end: endTime,
             is_all_day: isPageAllDay,
+            timezone: TIME_ZONE,
         },
     };
 }
@@ -268,7 +363,7 @@ export function main(n8nItems: any): Result {
                         // update evnet
                         result.update_events.push({
                             id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text,
-                            summary: page.properties.Name.title[0].text.content,
+                            summary: page.properties.Name.title[0].text.content, //TODO: test undfined
                             ...makeCalenderEventDate(page),
                         });
                     } else {
