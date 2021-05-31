@@ -1,4 +1,14 @@
 "use strict";
+/**
+ * gcal
+ *   all day => yyyy-mm-dd
+ *   with time => iso8601 with timezone(ex. +9)
+ * notion
+ *   all day => yyyy-mm-dd
+ *   with time => iso8601 with timezone(input time zone)
+ * js
+ *   Support for ISO 8601 formats differs in that date-only strings (e.g. "1970-01-01") are treated as UTC, not local.
+ */
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -19,7 +29,36 @@ var ADDED_TO_NOTION_MARK = "NOTION_ID: ";
 var NOTION_LAST_EDITED_TIME_PROPERTY_NAME = "Last Edited Time";
 var NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
 var NOTION_DATE_PROPERTY_NAME = "FIX-End";
+var TIME_ZONE = "Asia/Seoul";
 // ======================= set function =======================
+function makeIso8601WithTZ(time) {
+    var dateText = Intl.DateTimeFormat([], { timeZone: TIME_ZONE, timeZoneName: "short" }).format(new Date);
+    var timezoneString = dateText.split(" ")[1].slice(3);
+    var timezone_offset_min = parseInt(timezoneString.split(':')[0]) * 60;
+    if (timezoneString.includes(":")) {
+        timezone_offset_min = timezone_offset_min + parseInt(timezoneString.split(':')[1]);
+    }
+    var offset_hrs = Math.abs(timezone_offset_min / 60);
+    var offset_min = Math.abs(timezone_offset_min % 60);
+    var timezone_standard = 'Z';
+    if (offset_hrs < 10) {
+        offset_hrs = '0' + offset_hrs;
+    }
+    if (offset_min < 10) {
+        offset_min = '0' + offset_min;
+    }
+    if (timezone_offset_min > 0) {
+        timezone_standard = '+' + offset_hrs + ':' + offset_min;
+        time = time + (Math.abs(timezone_offset_min)) * 60 * 1000;
+    }
+    else if (timezone_offset_min < 0) {
+        timezone_standard = '-' + offset_hrs + ':' + offset_min;
+        time = time - (Math.abs(timezone_offset_min)) * 60 * 1000;
+    }
+    var dt = new Date(time).toISOString();
+    var current_datetime = dt.substring(0, dt.length - 1); // delete 'Z'
+    return current_datetime + timezone_standard;
+}
 function makePageState(page) {
     var pageStart = Date.parse(page.properties[NOTION_DATE_PROPERTY_NAME].date.start);
     var pageEnd = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end
@@ -76,13 +115,18 @@ function makeNotionPageDate(event) {
 }
 function makeCalenderEventDate(page) {
     var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageAllDay = _a.isPageAllDay;
+    var startTime = new Date(pageStart).toISOString();
+    var endTime = isPageAllDay
+        ? new Date((pageEnd || pageStart) + ONE_DAY_UNIX_TIME).toISOString()
+        : new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString();
     return {
         date: {
-            start: new Date(pageStart).toISOString(),
+            start: startTime,
             end: isPageAllDay
-                ? new Date((pageEnd || pageStart + ONE_DAY_UNIX_TIME) + ONE_DAY_UNIX_TIME).toISOString()
+                ? new Date((pageEnd || pageStart) + ONE_DAY_UNIX_TIME).toISOString()
                 : new Date(pageEnd || pageStart + ONE_DAY_UNIX_TIME).toISOString(),
             is_all_day: isPageAllDay,
+            timezone: TIME_ZONE,
         },
     };
 }
