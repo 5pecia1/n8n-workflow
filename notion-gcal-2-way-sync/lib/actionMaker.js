@@ -10,19 +10,21 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.main = void 0;
 // ======================= set const =======================
 var ONE_DAY_UNIX_TIME = 86400000;
 var ADD_TO_NOTION_MARK = ["notion: ", "notion : ", "Notion: ", "Notion : ", "notion:", "notion :", "Notion:", "Notion :"];
-var ADDED_TO_NOTION_MARK = "NOTION_URL:";
+var ADDED_TO_NOTION_MARK = "NOTION_ID: ";
 var NOTION_LAST_EDITED_TIME_PROPERTY_NAME = "Last Edited Time";
 var NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
 var NOTION_DATE_PROPERTY_NAME = "FIX-End";
 // ======================= set function =======================
 function makePageState(page) {
-    var pageStart = Date.parse(page[NOTION_DATE_PROPERTY_NAME].start);
-    var pageEnd = !page[NOTION_DATE_PROPERTY_NAME].end
+    var pageStart = Date.parse(page.properties[NOTION_DATE_PROPERTY_NAME].date.start);
+    var pageEnd = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end
         ? null
-        : Date.parse(page[NOTION_DATE_PROPERTY_NAME].end);
+        : Date.parse(page.properties[NOTION_DATE_PROPERTY_NAME].date.end);
     var isPageAllDay = new Date(pageStart).setUTCHours(0, 0, 0, 0).valueOf() === pageStart // UTC midnight
         && (pageEnd === null // one day
             || ((pageEnd - pageStart) % ONE_DAY_UNIX_TIME === 0) //or more day
@@ -51,11 +53,11 @@ function makeEventState(event) {
 // ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
 function makePageId(event) {
     var firstLine = event.description.split("\n")[0];
-    var lastIndex = firstLine.lastIndexOf("/");
-    return firstLine.substring(lastIndex);
+    // const lastIndex = firstLine.lastIndexOf("\n");
+    return firstLine.substring(ADDED_TO_NOTION_MARK.length);
 }
 function makeEventDescription(page) {
-    return ADDED_TO_NOTION_MARK + " https://notion.so/" + page.id;
+    return "" + ADDED_TO_NOTION_MARK + page.id + "\nhttps://notion.so/" + page.id + "\n";
 }
 function makeNotionPageDate(event) {
     var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventOneDayAllDay = _a.isEventOneDayAllDay;
@@ -88,6 +90,12 @@ function makeCalenderEventDate(page) {
 function main(n8nItems) {
     var events = n8nItems[0].json.calendar;
     var pages = n8nItems[1].json.notion;
+    if (!events[0]) {
+        events = [];
+    }
+    if (!pages[0]) {
+        pages = [];
+    }
     var result = {
         create_events: [],
         create_pages: [],
@@ -96,7 +104,7 @@ function main(n8nItems) {
         update_events: [],
         update_pages: [],
     };
-    var eventPages = pages.filter(function (p) { return p[NOTION_DATE_PROPERTY_NAME]; });
+    var eventPages = pages.filter(function (p) { return p.properties && p.properties[NOTION_DATE_PROPERTY_NAME]; });
     var addToNotionList = [];
     var followEventMap = new Map();
     events.forEach(function (e) {
@@ -115,7 +123,7 @@ function main(n8nItems) {
     for (var _i = 0, eventPages_1 = eventPages; _i < eventPages_1.length; _i++) {
         var page = eventPages_1[_i];
         var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageOneDayAllDAy = _a.isPageOneDayAllDAy;
-        var gcalIdInPage = page[NOTION_GCAL_ID_PROPERTY_NAME];
+        var gcalIdInPage = page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text;
         if (gcalIdInPage) {
             var event_1 = followEventMap.get(gcalIdInPage);
             if (event_1) {
@@ -123,20 +131,20 @@ function main(n8nItems) {
                 var pageIdInEvent = makePageId(event_1);
                 followEventMap.delete(gcalIdInPage);
                 // check diff
-                if ((pageStart != eventStart) // start time
-                    || (isPageOneDayAllDAy != isEventOneDayAllDay) // one day 
-                    || (!isPageOneDayAllDAy && (pageEnd != eventEnd)) // end time
+                if ((pageStart == eventStart) // start time
+                    && ((isPageOneDayAllDAy == isEventOneDayAllDay) // one day 
+                        || (!isPageOneDayAllDAy && (pageEnd == eventEnd))) // end time
                 ) {
                     // same event
                     // do nothing
                 }
                 else {
                     // update
-                    var notionLastEditTime = Date.parse(page[NOTION_LAST_EDITED_TIME_PROPERTY_NAME]);
+                    var notionLastEditTime = Date.parse(page.properties[NOTION_LAST_EDITED_TIME_PROPERTY_NAME].last_edited_time);
                     var eventLastEditTime = Date.parse(event_1.updated);
                     if (notionLastEditTime > eventLastEditTime) {
                         // update evnet
-                        result.update_events.push(__assign({ id: page[NOTION_GCAL_ID_PROPERTY_NAME], summary: page.Name }, makeCalenderEventDate(page)));
+                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: page.Name }, makeCalenderEventDate(page)));
                     }
                     else {
                         // update page
@@ -181,3 +189,4 @@ function main(n8nItems) {
             json: result,
         }];
 }
+exports.main = main;

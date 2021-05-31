@@ -12,6 +12,6 @@ return [{
     json: {
         name: data.name,
         gcal_id: data.gcal_id,
-        description: 'NOTION_URL:' + items[0].json.id + '\n' + data.event_description,
+        description: 'NOTION_ID: '+ items[0].json.id + '\nhttps://notion.so/' + items[0].json.id.replace(/-/g,"") + '\n' + data.event_description,
     }
 }];
