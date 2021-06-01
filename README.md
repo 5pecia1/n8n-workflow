@@ -37,7 +37,7 @@
     > Current latest offical n8n have bug about notion and gcal.  
     > So, You use my custom n8n image.
 4. Open and import workflow
-    1. open localhost:5678
+    1. open http://localhost:5678
     1. Click `Workflows`(upper left)
     2. Click `Import from FIle`
     3. Select [`./notion-gcal-2way-sync/Notion__Calender_Sync.json`](https://github.com/5pecia1/n8n-workflow/blob/main/notion-gcal-2-way-sync/Notion__Calender_Sync.json)
