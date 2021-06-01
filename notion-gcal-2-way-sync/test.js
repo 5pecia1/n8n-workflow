@@ -15,7 +15,7 @@ const val =
                     "summary": "test4",
                     "description": "NOTION_ID: 77ccd5ff-f591-47bb-a9a9-79ebe2d9bc67 https://notion.so/77ccd5ff-f591-47bb-a9a9-79ebe2d9bc67 ",
                     "creator": {
-                        "email": "pdpxpd@gmail.com"
+                        "email": "xxxxx@gmail.com"
                     },
                     "organizer": {
                         "email": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
@@ -48,7 +48,7 @@ const val =
                     "summary": "test2",
                     "description": "NOTION_ID: 2c15d497-847b-4244-aded-8ca32d140814 https://notion.so/2c15d497-847b-4244-aded-8ca32d140814 ",
                     "creator": {
-                        "email": "pdpxpd@gmail.com"
+                        "email": "xxxxx@gmail.com"
                     },
                     "organizer": {
                         "email": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
@@ -79,7 +79,7 @@ const val =
                     "summary": "test",
                     "description": "NOTION_ID: eb2f8bcf-7d5a-4740-b543-acba30613b55 https://notion.so/eb2f8bcf-7d5a-4740-b543-acba30613b55 ",
                     "creator": {
-                        "email": "pdpxpd@gmail.com"
+                        "email": "xxxxx@gmail.com"
                     },
                     "organizer": {
                         "email": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
@@ -112,7 +112,7 @@ const val =
                     "summary": "test3",
                     "description": "NOTION_ID: 4e05b4a5-ecae-4889-aa38-7715056a4ab2 https://notion.so/4e05b4a5-ecae-4889-aa38-7715056a4ab2 ",
                     "creator": {
-                        "email": "pdpxpd@gmail.com"
+                        "email": "xxxxx@gmail.com"
                     },
                     "organizer": {
                         "email": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
