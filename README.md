@@ -28,8 +28,8 @@
 
 * git
 * docker
-* make gcal OAuth id
-* make Notion Integration
+* gcal OAuth id
+* Notion Integration
 
 #### Setting
 
