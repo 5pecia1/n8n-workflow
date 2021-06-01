@@ -28,7 +28,7 @@
 
 * docker
 
-#### Setting
+#### Set And Run
 
 1. Pull and run docker container
     ```bash
@@ -64,11 +64,25 @@
         example: `Start-End Time|date`
 8. Set Interval
     1. set interval in `Interval` node
-
-#### Run
-
 1. Active this workflows  
     check `Active` button (upper right)
+
+#### USAGE
+
+* sync page to event
+    * new page  
+    Creating a property(ex. Start-End Time) of the base date in the page creates a new event.
+    * update page  
+    If you modify the property of the standard date in the page, the existing event is updated.
+    * delete page  
+    If you delete the property of the base date in the page, the event is deleted.
+* sync evnet to page
+    * new evens  
+    If you create an event by writing the event name after `notion:`, a new page is created.  
+    example. `notion: this is new event name`
+    * update evnet  
+    Modifying the date of the event also modifies the date on the page.
+
 
 
 ### Develop
