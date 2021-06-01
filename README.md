@@ -34,7 +34,7 @@
     ```bash
     $ docker run -d --restart always -e N8N_PORT=5678 -v ./n8n:/home/node/.n8n -p 5678:5678 --name n8n 5pecia1/n8n-custom:latest
     ```
-    > Current latest n8n have bug about notion and gcal.  
+    > Current latest offical n8n have bug about notion and gcal.  
     > So, You use my custom n8n image.
 4. Open and import workflow
     1. open localhost:5678
