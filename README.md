@@ -39,7 +39,7 @@
 4. Open and import workflow
     1. open http://localhost:5678
     1. Click `Workflows`(upper left)
-    2. Click `Import from FIle`
+    2. Click `Import from File`
     3. Select [`./notion-gcal-2way-sync/Notion__Calender_Sync.json`](https://github.com/5pecia1/n8n-workflow/blob/main/notion-gcal-2-way-sync/Notion__Calender_Sync.json)
 5. Set Google OAuth Credentials, Notion Credentials in n8n
     * Google OAuth reference: https://docs.n8n.io/credentials/google/#using-service-account
