@@ -26,10 +26,10 @@ exports.main = void 0;
 var ONE_DAY_UNIX_TIME = 86400000;
 var ADD_TO_NOTION_MARK = ["notion: ", "notion : ", "Notion: ", "Notion : ", "notion:", "notion :", "Notion:", "Notion :"];
 var ADDED_TO_NOTION_MARK = "NOTION_ID: ";
-var NOTION_LAST_EDITED_TIME_PROPERTY_NAME = "Last Edited Time";
 var NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
 var NOTION_DATE_PROPERTY_NAME = "FIX-End";
 var TIME_ZONE = "Asia/Seoul";
+var DEFAULT_RANGE = 30 * 60 * 1000; // 30 min
 // ======================= set function =======================
 function getTImeZoneOffset() {
     var dateText = Intl.DateTimeFormat([], { timeZone: TIME_ZONE, timeZoneName: "short" }).format(new Date);
@@ -127,14 +127,19 @@ function makeEventDescription(page) {
     return "" + ADDED_TO_NOTION_MARK + page.id + "\nhttps://notion.so/" + page.id + "\n";
 }
 function makeNotionPageDate(event) {
-    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventOneDayAllDay = _a.isEventOneDayAllDay, isEventAllDay = _a.isEventAllDay;
+    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventAllDay = _a.isEventAllDay, isEventOneDayAllDay = _a.isEventOneDayAllDay;
     var eventStartString = makeIso8601WithTZ(eventStart);
-    var eventEndString = makeIso8601WithTZ(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd);
+    // const eventEndString = makeIso8601WithTZ(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd);
+    var eventEndString = isEventOneDayAllDay ? null : makeIso8601WithTZ(isEventAllDay ? (eventEnd - ONE_DAY_UNIX_TIME) : eventEnd);
     return {
+        // start: eventStartString,
+        // end: eventEndString,
+        is_all_day: isEventAllDay,
+        timezone: TIME_ZONE,
         start: isEventAllDay
             ? eventStartString.substring(0, eventStartString.indexOf("T"))
             : eventStartString,
-        end: isEventOneDayAllDay
+        end: eventEndString == null
             ? null
             : isEventAllDay
                 ? eventEndString.substring(0, eventEndString.indexOf("T"))
@@ -144,13 +149,23 @@ function makeNotionPageDate(event) {
 function makeCalenderEventDate(page) {
     var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageAllDay = _a.isPageAllDay;
     var startTime = makeIso8601WithTZ(pageStart);
+    // const startTime = new Date(pageStart).toISOString();
     var endTime = isPageAllDay
         ? makeIso8601WithTZ((pageEnd || pageStart) + ONE_DAY_UNIX_TIME)
-        : makeIso8601WithTZ(pageEnd || pageStart + 60 * 1000 * 30); //add 30 min
+        : makeIso8601WithTZ(pageEnd || (pageStart + DEFAULT_RANGE));
+    // const endTime = isPageAllDay
+    //     ? new Date((pageEnd || pageStart) + ONE_DAY_UNIX_TIME).toISOString()
+    //     : new Date(pageEnd || pageStart + DEFAULT_RANGE).toISOString(); //add 30 min
     return {
         date: {
-            start: startTime,
-            end: endTime,
+            // start: startTime,
+            // end: endTime,
+            start: isPageAllDay
+                ? startTime.substring(0, startTime.indexOf("T"))
+                : startTime,
+            end: isPageAllDay
+                ? endTime.substring(0, endTime.indexOf("T"))
+                : endTime,
             is_all_day: isPageAllDay,
             timezone: TIME_ZONE,
         },
@@ -160,10 +175,10 @@ function makeCalenderEventDate(page) {
 function main(n8nItems) {
     var events = n8nItems[0].json.calendar;
     var pages = n8nItems[1].json.notion;
-    if (!events[0]) {
+    if (!Object.keys(events[0]).length) {
         events = [];
     }
-    if (!pages[0]) {
+    if (!Object.keys(pages[0]).length) {
         pages = [];
     }
     var result = {
@@ -203,15 +218,16 @@ function main(n8nItems) {
                 followEventMap.delete(gcalIdInPage);
                 // check diff
                 if ((pageStart == eventStart) // start time
-                    && ((isPageOneDayAllDAy == isEventOneDayAllDay) // one day 
-                        || (!isPageOneDayAllDAy && (pageEnd == eventEnd))) // end time
+                    && ((isPageOneDayAllDAy && isEventOneDayAllDay) // one day 
+                        || (!isPageOneDayAllDAy && (pageEnd == eventEnd)) // end time TODO: FIX one day diff between(+1) page and event
+                        || (pageEnd == null && !isPageOneDayAllDAy && pageStart + DEFAULT_RANGE == eventEnd)) // not contained page and calendar DEFAULT_RANGE ;
                 ) {
                     // same event
                     // do nothing
                 }
                 else {
                     // update
-                    var notionLastEditTime = Date.parse(page.properties[NOTION_LAST_EDITED_TIME_PROPERTY_NAME].last_edited_time);
+                    var notionLastEditTime = Date.parse(page.last_edited_time);
                     var eventLastEditTime = Date.parse(event_1.updated);
                     if (notionLastEditTime > eventLastEditTime) {
                         // update evnet

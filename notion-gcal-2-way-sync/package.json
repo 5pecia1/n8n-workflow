@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "ts-node": "ts-node",
     "build": "tsc -p . && (cp lib/actionMaker.js . && echo \"return main(items)\" >> actionMaker.js)",
     "build-copy": "npm run build && cat actionMaker.js | pbcopy",
     "test": "npm run build && node test.js"
@@ -13,6 +14,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^15.6.1",
+    "ts-node": "^10.0.0",
     "typescript": "^4.3.2"
   }
 }
