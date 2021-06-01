@@ -140,7 +140,7 @@ const val =
                     "object": "page",
                     "id": "4e05b4a5-ecae-4889-aa38-7715056a4ab2",
                     "created_time": "2021-06-01T05:51:00.000Z",
-                    "last_edited_time": "2021-06-01T06:16:00.000Z",
+                    "last_edited_time": "2021-06-01T06:30:00.000Z",
                     "parent": {
                         "type": "database_id",
                         "database_id": "2ad4848e-ab72-4165-8086-0d1d2efc34c6"
@@ -152,7 +152,7 @@ const val =
                             "type": "date",
                             "date": {
                                 "start": "2021-06-02",
-                                "end": "2021-06-05"
+                                "end": "2021-06-06"
                             }
                         },
                         "GCal Id": {
@@ -181,7 +181,7 @@ const val =
                         "Last Edited Time": {
                             "id": "yGwT",
                             "type": "last_edited_time",
-                            "last_edited_time": "2021-06-01T06:16:00.000Z"
+                            "last_edited_time": "2021-06-01T06:30:00.000Z"
                         },
                         "Name": {
                             "id": "title",
