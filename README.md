@@ -28,27 +28,27 @@
 
 * git
 * docker
-* gcal OAuth id
-* Notion Integration
 
 #### Setting
 
-1. clone this project
+1. Clone this project
     ```bash
     $ git pull https://github.com/5pecia1/n8n-workflow
     ```
-2. pull and run docker container
+2. Pull and run docker container
     ```bash
     $ docker run -d --restart always -e N8N_PORT=5678 -v ./n8n:/home/node/.n8n -p 5678:5678 --name n8n 5pecia1/n8n-custom:latest
     ```
     > Current latest n8n have bug about notion and gcal.  
     > So, You use my custom n8n image.
-4. open and import workflow
+4. Open and import workflow
     1. open localhost:5678
     1. Click `Workflows`(upper left)
     2. Click `Import from FIle`
     3. Select `./notion-gcal-2way-sync/Notion__Calender_Sync.json`
-5. Set OAuth Credentials, Notion Credentials in n8n
+5. Set Google OAuth Credentials, Notion Credentials in n8n
+    * Google OAuth reference: https://docs.n8n.io/credentials/google/#using-service-account
+    * Notion reference: https://docs.n8n.io/credentials/notion/
 6. Make properties in Notion Page in DB
     * name: `GCal Id`, type: **text**
 7. Change your calender, notion information in workflow nodes  
