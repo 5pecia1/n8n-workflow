@@ -24,7 +24,7 @@
 
 ### Use
 
-#### Prerequirecs
+#### Prerequisites
 
 * docker
 
