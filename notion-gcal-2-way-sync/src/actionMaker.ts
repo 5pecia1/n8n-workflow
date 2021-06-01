@@ -14,7 +14,7 @@ const ONE_DAY_UNIX_TIME = 86400000;
 const ADD_TO_NOTION_MARK = ["notion: ", "notion : ", "Notion: ", "Notion : ", "notion:", "notion :", "Notion:", "Notion :"];
 const ADDED_TO_NOTION_MARK = "NOTION_ID: ";
 const NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
-const NOTION_DATE_PROPERTY_NAME = "FIX-End";
+const NOTION_DATE_PROPERTY_NAME = "Start-End Time";
 const TIME_ZONE = "Asia/Seoul"
 const DEFAULT_RANGE = 30 * 60 * 1000; // 30 min
 
@@ -337,7 +337,7 @@ export function main(n8nItems: any): Result {
 
     events.forEach(e => {
         for (const mark of ADD_TO_NOTION_MARK) {
-            if (e.summary.startsWith(mark)) {
+            if (e.summary && e.summary.startsWith(mark)) {
                 addToNotionList.push(e);
                 e.summary = e.summary.substring(mark.length);
                 break;
@@ -379,10 +379,11 @@ export function main(n8nItems: any): Result {
                     const eventLastEditTime = Date.parse(event.updated);
 
                     if (notionLastEditTime > eventLastEditTime) {
+                        const summary = page.properties.Name.title[0] ? page.properties.Name.title[0].text.content : "";
                         // update evnet
                         result.update_events.push({
                             id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text,
-                            summary: page.properties.Name.title[0].text.content, //TODO: test undfined
+                            summary: summary,
                             ...makeCalenderEventDate(page),
                         });
                     } else {

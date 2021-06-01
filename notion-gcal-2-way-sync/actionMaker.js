@@ -27,7 +27,7 @@ var ONE_DAY_UNIX_TIME = 86400000;
 var ADD_TO_NOTION_MARK = ["notion: ", "notion : ", "Notion: ", "Notion : ", "notion:", "notion :", "Notion:", "Notion :"];
 var ADDED_TO_NOTION_MARK = "NOTION_ID: ";
 var NOTION_GCAL_ID_PROPERTY_NAME = "GCal Id";
-var NOTION_DATE_PROPERTY_NAME = "FIX-End";
+var NOTION_DATE_PROPERTY_NAME = "Start-End Time";
 var TIME_ZONE = "Asia/Seoul";
 var DEFAULT_RANGE = 30 * 60 * 1000; // 30 min
 // ======================= set function =======================
@@ -195,7 +195,7 @@ function main(n8nItems) {
     events.forEach(function (e) {
         for (var _i = 0, ADD_TO_NOTION_MARK_1 = ADD_TO_NOTION_MARK; _i < ADD_TO_NOTION_MARK_1.length; _i++) {
             var mark = ADD_TO_NOTION_MARK_1[_i];
-            if (e.summary.startsWith(mark)) {
+            if (e.summary && e.summary.startsWith(mark)) {
                 addToNotionList.push(e);
                 e.summary = e.summary.substring(mark.length);
                 break;
@@ -230,8 +230,9 @@ function main(n8nItems) {
                     var notionLastEditTime = Date.parse(page.last_edited_time);
                     var eventLastEditTime = Date.parse(event_1.updated);
                     if (notionLastEditTime > eventLastEditTime) {
+                        var summary = page.properties.Name.title[0] ? page.properties.Name.title[0].text.content : "";
                         // update evnet
-                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: page.properties.Name.title[0].text.content }, makeCalenderEventDate(page)));
+                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: summary }, makeCalenderEventDate(page)));
                     }
                     else {
                         // update page
