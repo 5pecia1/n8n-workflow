@@ -59,7 +59,7 @@
         `Start-End Time` change to your date property name in notion db
     * `Create Page`, `Create Page Range Date`, `Update Page`, `Update Page Range Date`
         * Notion API
-        * Key First Date Property. Set as below.  
+        * Key in date first property. Set as below.  
         `<your date property name in notion db>|date`  
         example: `Start-End Time|date`
 8. Set Interval
