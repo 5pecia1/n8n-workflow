@@ -1,6 +1,6 @@
 # My n8n workflow
 
-## notion & google calender 2 way sync
+## notion & google calendar 2 way sync
 
 ### Feature
 
@@ -40,7 +40,7 @@
     1. open http://localhost:5678
     1. Click `Workflows`(upper left)
     2. Click `Import from File`
-    3. Select [`./notion-gcal-2way-sync/Notion__Calender_Sync.json`](https://github.com/5pecia1/n8n-workflow/blob/main/notion-gcal-2-way-sync/Notion__Calender_Sync.json)
+    3. Select [`./notion-gcal-2way-sync/Notion__Calendar_Sync.json`](https://github.com/5pecia1/n8n-workflow/blob/main/notion-gcal-2-way-sync/Notion__Calendar_Sync.json)
 5. Set Google OAuth Credentials, Notion Credentials in n8n
     * Google OAuth reference: https://docs.n8n.io/credentials/google/#using-service-account
     * Notion reference: https://docs.n8n.io/credentials/notion/
