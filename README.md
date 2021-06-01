@@ -46,7 +46,7 @@
     * Notion reference: https://docs.n8n.io/credentials/notion/
 6. Make properties in Notion Page in DB
     * name: `GCal Id`, type: **text**
-7. Change your calender, notion information in workflow nodes  
+7. Change your calendar, notion information in workflow nodes  
     Nodes Chekclist
     * `Get Notion`
         * Notion API
@@ -77,7 +77,7 @@
     * delete page  
     If you delete the property of the base date in the page, the event is deleted.
 * sync evnet to page
-    * new evens  
+    * new event  
     If you create an event by writing the event name after `notion:`, a new page is created.  
     example. `notion: this is new event name`
     * update evnet  
