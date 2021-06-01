@@ -1,5 +1,5 @@
 {
-  "name": "Notion, Calender Sync",
+  "name": "Notion, Calendar Sync",
   "nodes": [
     {
       "parameters": {},
@@ -49,24 +49,6 @@
       ],
       "credentials": {
         "notionApi": "Notion API key"
-      }
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
-        "returnAll": true,
-        "options": {}
-      },
-      "name": "Get Calender",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1,
-      "position": [
-        400,
-        640
-      ],
-      "credentials": {
-        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
       }
     },
     {
@@ -518,6 +500,24 @@
         160,
         880
       ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
+        "returnAll": true,
+        "options": {}
+      },
+      "name": "Get Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        400,
+        640
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calendar OAuth2 API"
+      }
     }
   ],
   "connections": {
@@ -530,7 +530,7 @@
             "index": 0
           },
           {
-            "node": "Get Calender",
+            "node": "Get Calendar",
             "type": "main",
             "index": 0
           }
@@ -542,17 +542,6 @@
         [
           {
             "node": "Map",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Calender": {
-      "main": [
-        [
-          {
-            "node": "Map ",
             "type": "main",
             "index": 0
           }
@@ -855,7 +844,18 @@
             "index": 0
           },
           {
-            "node": "Get Calender",
+            "node": "Get Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Calendar": {
+      "main": [
+        [
+          {
+            "node": "Map ",
             "type": "main",
             "index": 0
           }
