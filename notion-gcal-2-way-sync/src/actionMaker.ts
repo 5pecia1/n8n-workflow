@@ -19,7 +19,7 @@ const TIME_ZONE = "Asia/Seoul"
 const DEFAULT_RANGE = 30 * 60 * 1000; // 30 min
 
 // ======================= set type =======================
-type CalenderDate = {
+type CalendarDate = {
     start: {
         dateTime?: string;
         date?: string;
@@ -57,14 +57,14 @@ type NotionPage = {
     };
 };
 
-type CalenderEvent = {
+type CalendarEvent = {
     id: string;
     updated: string;
     summary: string;
     description?: string;
-} & CalenderDate;
+} & CalendarDate;
 
-type CalenderOuputDate = {
+type CalendarOuputDate = {
     date: {
         start: string;
         end: string;
@@ -82,7 +82,7 @@ type CreateEvent = {
     page_id: string;
     summary: string;
     description: string;
-} & CalenderOuputDate;
+} & CalendarOuputDate;
 
 type CreatePage = {
     date: NotionOuputDate;
@@ -94,7 +94,7 @@ type CreatePage = {
 type UpdateEvent = {
     id: string;
     summary: string;
-} & CalenderOuputDate;
+} & CalendarOuputDate;
 
 type UpdatePage = {
     id: string;
@@ -219,7 +219,7 @@ function makePageState(page: NotionPage): PageState {
     };
 }
 
-function makeEventState(event: CalenderEvent): EventState {
+function makeEventState(event: CalendarEvent): EventState {
     const startDateTime = event.start.dateTime || event.start.date as string;
     const endDateTime = event.end.dateTime || event.end.date as string;
 
@@ -245,7 +245,7 @@ function makeEventState(event: CalenderEvent): EventState {
 }
 
 // ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>
-function makePageId(event: CalenderEvent): string {
+function makePageId(event: CalendarEvent): string {
     const descriptoin = (event.description as string);
     let firstLine: string;
 
@@ -262,7 +262,7 @@ function makeEventDescription(page: NotionPage): string {
     return `${ADDED_TO_NOTION_MARK}${page.id}\nhttps://notion.so/${page.id}\n`;
 }
 
-function makeNotionPageDate(event: CalenderEvent): NotionOuputDate {
+function makeNotionPageDate(event: CalendarEvent): NotionOuputDate {
     const { eventStart, eventEnd, isEventAllDay, isEventOneDayAllDay } = makeEventState(event);
     const eventStartString = makeIso8601WithTZ(eventStart);
     // const eventEndString = makeIso8601WithTZ(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd);
@@ -284,7 +284,7 @@ function makeNotionPageDate(event: CalenderEvent): NotionOuputDate {
     };
 }
 
-function makeCalenderEventDate(page: NotionPage): CalenderOuputDate {
+function makeCalendarEventDate(page: NotionPage): CalendarOuputDate {
     const { pageStart, pageEnd, isPageAllDay } = makePageState(page);
     const startTime = makeIso8601WithTZ(pageStart);
     // const startTime = new Date(pageStart).toISOString();
@@ -313,7 +313,7 @@ function makeCalenderEventDate(page: NotionPage): CalenderOuputDate {
 
 // ======================= set main function =======================
 export function main(n8nItems: any): Result {
-    let events: CalenderEvent[] = n8nItems[0].json.calendar;
+    let events: CalendarEvent[] = n8nItems[0].json.calendar;
     let pages: NotionPage[] = n8nItems[1].json.notion;
 
     if (!Object.keys(events[0]).length) {
@@ -332,8 +332,8 @@ export function main(n8nItems: any): Result {
         update_pages: [],
     };
     const eventPages = pages.filter(p => p.properties && p.properties[NOTION_DATE_PROPERTY_NAME]);
-    const addToNotionList: CalenderEvent[] = [];
-    const followEventMap = new Map<string, CalenderEvent>();
+    const addToNotionList: CalendarEvent[] = [];
+    const followEventMap = new Map<string, CalendarEvent>();
 
     events.forEach(e => {
         for (const mark of ADD_TO_NOTION_MARK) {
@@ -384,7 +384,7 @@ export function main(n8nItems: any): Result {
                         result.update_events.push({
                             id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text,
                             summary: summary,
-                            ...makeCalenderEventDate(page),
+                            ...makeCalendarEventDate(page),
                         });
                     } else {
                         // update page
@@ -407,7 +407,7 @@ export function main(n8nItems: any): Result {
                 page_id: page.id,
                 description: makeEventDescription(page),
                 summary: page.properties.Name.title[0].text.content,
-                ...makeCalenderEventDate(page),
+                ...makeCalendarEventDate(page),
             });
         }
     }

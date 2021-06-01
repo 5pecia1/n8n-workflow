@@ -146,7 +146,7 @@ function makeNotionPageDate(event) {
                 : eventEndString,
     };
 }
-function makeCalenderEventDate(page) {
+function makeCalendarEventDate(page) {
     var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageAllDay = _a.isPageAllDay;
     var startTime = makeIso8601WithTZ(pageStart);
     // const startTime = new Date(pageStart).toISOString();
@@ -232,7 +232,7 @@ function main(n8nItems) {
                     if (notionLastEditTime > eventLastEditTime) {
                         var summary = page.properties.Name.title[0] ? page.properties.Name.title[0].text.content : "";
                         // update evnet
-                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: summary }, makeCalenderEventDate(page)));
+                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: summary }, makeCalendarEventDate(page)));
                     }
                     else {
                         // update page
@@ -253,7 +253,7 @@ function main(n8nItems) {
         }
         else {
             //add to gcal
-            result.create_events.push(__assign({ page_id: page.id, description: makeEventDescription(page), summary: page.properties.Name.title[0].text.content }, makeCalenderEventDate(page)));
+            result.create_events.push(__assign({ page_id: page.id, description: makeEventDescription(page), summary: page.properties.Name.title[0].text.content }, makeCalendarEventDate(page)));
         }
     }
     for (var _c = 0, _d = Array.from(followEventMap); _c < _d.length; _c++) {
