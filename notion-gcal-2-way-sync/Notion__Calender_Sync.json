@@ -1,5 +1,5 @@
 {
-  "name": "Notion, Calender",
+  "name": "Notion, Calender Sync",
   "nodes": [
     {
       "parameters": {},
@@ -7,8 +7,8 @@
       "type": "n8n-nodes-base.start",
       "typeVersion": 1,
       "position": [
-        200,
-        750
+        160,
+        720
       ]
     },
     {
@@ -25,7 +25,7 @@
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
-        "databaseId": "2ad4848e-ab72-4165-8086-0d1d2efc34c6",
+        "databaseId": "3e5fa45b-1ced-42de-9344-441cbe033079",
         "returnAll": true,
         "simple": false,
         "options": {
@@ -54,7 +54,7 @@
     {
       "parameters": {
         "operation": "getAll",
-        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
         "returnAll": true,
         "options": {}
       },
@@ -95,7 +95,7 @@
     },
     {
       "parameters": {
-        "functionCode": "\"use strict\";\n/**\n * gcal\n *   all day => yyyy-mm-dd\n *   with time => iso8601 with timezone(ex. +9)\n * notion\n *   all day => yyyy-mm-dd\n *   with time => iso8601 with timezone(input time zone)\n * js\n *   Support for ISO 8601 formats differs in that date-only strings (e.g. \"1970-01-01\") are treated as UTC, not local.\n */\nvar __assign = (this && this.__assign) || function () {\n    __assign = Object.assign || function(t) {\n        for (var s, i = 1, n = arguments.length; i < n; i++) {\n            s = arguments[i];\n            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))\n                t[p] = s[p];\n        }\n        return t;\n    };\n    return __assign.apply(this, arguments);\n};\nObject.defineProperty(exports, \"__esModule\", { value: true });\nexports.main = void 0;\n// ======================= set const =======================\nvar ONE_DAY_UNIX_TIME = 86400000;\nvar ADD_TO_NOTION_MARK = [\"notion: \", \"notion : \", \"Notion: \", \"Notion : \", \"notion:\", \"notion :\", \"Notion:\", \"Notion :\"];\nvar ADDED_TO_NOTION_MARK = \"NOTION_ID: \";\nvar NOTION_GCAL_ID_PROPERTY_NAME = \"GCal Id\";\nvar NOTION_DATE_PROPERTY_NAME = \"FIX-End\";\nvar TIME_ZONE = \"Asia/Seoul\";\nvar DEFAULT_RANGE = 30 * 60 * 1000; // 30 min\n// ======================= set function =======================\nfunction getTImeZoneOffset() {\n    var dateText = Intl.DateTimeFormat([], { timeZone: TIME_ZONE, timeZoneName: \"short\" }).format(new Date);\n    var timezoneString = dateText.split(\" \")[1].slice(3);\n    var timezoneOffsetMin = parseInt(timezoneString.split(':')[0]) * 60;\n    if (timezoneString.includes(\":\")) {\n        timezoneOffsetMin = timezoneOffsetMin + parseInt(timezoneString.split(':')[1]);\n    }\n    return timezoneOffsetMin;\n}\nfunction getTimeZone() {\n    var timezoneOffsetMin = getTImeZoneOffset();\n    var offsetHrs = Math.abs(timezoneOffsetMin / 60);\n    var offsetMin = Math.abs(timezoneOffsetMin % 60);\n    var timezoneStandard = 'Z';\n    if (offsetHrs < 10) {\n        offsetHrs = '0' + offsetHrs;\n    }\n    if (offsetMin < 10) {\n        offsetMin = '0' + offsetMin;\n    }\n    if (timezoneOffsetMin > 0) {\n        timezoneStandard = '+' + offsetHrs + ':' + offsetMin;\n    }\n    else if (timezoneOffsetMin < 0) {\n        timezoneStandard = '-' + offsetHrs + ':' + offsetMin;\n    }\n    return timezoneStandard;\n}\nfunction makeIso8601WithTZ(time) {\n    var timezoneOffsetMin = getTImeZoneOffset();\n    if (timezoneOffsetMin > 0) {\n        time = time + (Math.abs(timezoneOffsetMin)) * 60 * 1000;\n    }\n    else if (timezoneOffsetMin < 0) {\n        time = time - (Math.abs(timezoneOffsetMin)) * 60 * 1000;\n    }\n    var dt = new Date(time).toISOString();\n    var currentDatetime = dt.substring(0, dt.length - 5); // delete '.000Z'\n    return currentDatetime + getTimeZone();\n}\nfunction makePageState(page) {\n    var startDateTime = page.properties[NOTION_DATE_PROPERTY_NAME].date.start;\n    var endDateTime = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end\n        ? null\n        : page.properties[NOTION_DATE_PROPERTY_NAME].date.end;\n    var pageStart = Date.parse(startDateTime.includes(\"T\")\n        ? startDateTime\n        : startDateTime + (\"T00:00:00\" + getTimeZone()));\n    var pageEnd = !endDateTime\n        ? null\n        : Date.parse(endDateTime.includes(\"T\")\n            ? endDateTime\n            : endDateTime + (\"T00:00:00\" + getTimeZone()));\n    var isPageAllDay = !startDateTime.includes(\"T\");\n    var isPageOneDayAllDAy = isPageAllDay && pageEnd === null;\n    return {\n        pageStart: pageStart,\n        pageEnd: pageEnd,\n        isPageAllDay: isPageAllDay,\n        isPageOneDayAllDAy: isPageOneDayAllDAy,\n    };\n}\nfunction makeEventState(event) {\n    var startDateTime = event.start.dateTime || event.start.date;\n    var endDateTime = event.end.dateTime || event.end.date;\n    var eventStart = Date.parse(startDateTime.includes(\"T\")\n        ? startDateTime\n        : startDateTime + (\"T00:00:00\" + getTimeZone()));\n    var eventEnd = Date.parse(endDateTime.includes(\"T\")\n        ? endDateTime\n        : endDateTime + (\"T00:00:00\" + getTimeZone()));\n    var isEventAllDay = !!event.start.date;\n    var isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;\n    return {\n        eventStart: eventStart,\n        eventEnd: eventEnd,\n        isEventAllDay: isEventAllDay,\n        isEventOneDayAllDay: isEventOneDayAllDay,\n    };\n}\n// ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>\nfunction makePageId(event) {\n    var descriptoin = event.description;\n    var firstLine;\n    if (descriptoin.includes(\"\\n\")) {\n        firstLine = descriptoin.substring(0, descriptoin.indexOf(\"\\n\"));\n    }\n    else {\n        firstLine = descriptoin.substring(0, descriptoin.indexOf(\"<br>\"));\n    }\n    return firstLine.substring(ADDED_TO_NOTION_MARK.length);\n}\nfunction makeEventDescription(page) {\n    return \"\" + ADDED_TO_NOTION_MARK + page.id + \"\\nhttps://notion.so/\" + page.id + \"\\n\";\n}\nfunction makeNotionPageDate(event) {\n    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventAllDay = _a.isEventAllDay, isEventOneDayAllDay = _a.isEventOneDayAllDay;\n    var eventStartString = makeIso8601WithTZ(eventStart);\n    // const eventEndString = makeIso8601WithTZ(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd);\n    var eventEndString = isEventOneDayAllDay ? null : makeIso8601WithTZ(isEventAllDay ? (eventEnd - ONE_DAY_UNIX_TIME) : eventEnd);\n    return {\n        // start: eventStartString,\n        // end: eventEndString,\n        is_all_day: isEventAllDay,\n        timezone: TIME_ZONE,\n        start: isEventAllDay\n            ? eventStartString.substring(0, eventStartString.indexOf(\"T\"))\n            : eventStartString,\n        end: eventEndString == null\n            ? null\n            : isEventAllDay\n                ? eventEndString.substring(0, eventEndString.indexOf(\"T\"))\n                : eventEndString,\n    };\n}\nfunction makeCalenderEventDate(page) {\n    var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageAllDay = _a.isPageAllDay;\n    var startTime = makeIso8601WithTZ(pageStart);\n    // const startTime = new Date(pageStart).toISOString();\n    var endTime = isPageAllDay\n        ? makeIso8601WithTZ((pageEnd || pageStart) + ONE_DAY_UNIX_TIME)\n        : makeIso8601WithTZ(pageEnd || (pageStart + DEFAULT_RANGE));\n    // const endTime = isPageAllDay\n    //     ? new Date((pageEnd || pageStart) + ONE_DAY_UNIX_TIME).toISOString()\n    //     : new Date(pageEnd || pageStart + DEFAULT_RANGE).toISOString(); //add 30 min\n    return {\n        date: {\n            // start: startTime,\n            // end: endTime,\n            start: isPageAllDay\n                ? startTime.substring(0, startTime.indexOf(\"T\"))\n                : startTime,\n            end: isPageAllDay\n                ? endTime.substring(0, endTime.indexOf(\"T\"))\n                : endTime,\n            is_all_day: isPageAllDay,\n            timezone: TIME_ZONE,\n        },\n    };\n}\n// ======================= set main function =======================\nfunction main(n8nItems) {\n    var events = n8nItems[0].json.calendar;\n    var pages = n8nItems[1].json.notion;\n    if (!Object.keys(events[0]).length) {\n        events = [];\n    }\n    if (!Object.keys(pages[0]).length) {\n        pages = [];\n    }\n    var result = {\n        create_events: [],\n        create_pages: [],\n        delete_events: [],\n        delete_pages: [],\n        update_events: [],\n        update_pages: [],\n    };\n    var eventPages = pages.filter(function (p) { return p.properties && p.properties[NOTION_DATE_PROPERTY_NAME]; });\n    var addToNotionList = [];\n    var followEventMap = new Map();\n    events.forEach(function (e) {\n        for (var _i = 0, ADD_TO_NOTION_MARK_1 = ADD_TO_NOTION_MARK; _i < ADD_TO_NOTION_MARK_1.length; _i++) {\n            var mark = ADD_TO_NOTION_MARK_1[_i];\n            if (e.summary.startsWith(mark)) {\n                addToNotionList.push(e);\n                e.summary = e.summary.substring(mark.length);\n                break;\n            }\n        }\n        if (e.description && e.description.startsWith(ADDED_TO_NOTION_MARK)) {\n            followEventMap.set(e.id, e);\n        }\n    });\n    for (var _i = 0, eventPages_1 = eventPages; _i < eventPages_1.length; _i++) {\n        var page = eventPages_1[_i];\n        var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageOneDayAllDAy = _a.isPageOneDayAllDAy;\n        var gcalInfo = page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0];\n        if (gcalInfo) {\n            var gcalIdInPage = gcalInfo.plain_text;\n            var event_1 = followEventMap.get(gcalIdInPage);\n            if (event_1) {\n                var _b = makeEventState(event_1), eventStart = _b.eventStart, eventEnd = _b.eventEnd, isEventOneDayAllDay = _b.isEventOneDayAllDay;\n                var pageIdInEvent = makePageId(event_1);\n                followEventMap.delete(gcalIdInPage);\n                // check diff\n                if ((pageStart == eventStart) // start time\n                    && ((isPageOneDayAllDAy && isEventOneDayAllDay) // one day \n                        || (!isPageOneDayAllDAy && (pageEnd == eventEnd)) // end time\n                        || (pageEnd == null && !isPageOneDayAllDAy && pageStart + DEFAULT_RANGE == eventEnd)) // not contained page and calendar DEFAULT_RANGE ;\n                ) {\n                    // same event\n                    // do nothing\n                }\n                else {\n                    // update\n                    var notionLastEditTime = Date.parse(page.last_edited_time);\n                    var eventLastEditTime = Date.parse(event_1.updated);\n                    if (notionLastEditTime > eventLastEditTime) {\n                        // update evnet\n                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: page.properties.Name.title[0].text.content }, makeCalenderEventDate(page)));\n                    }\n                    else {\n                        // update page\n                        result.update_pages.push({\n                            id: pageIdInEvent,\n                            date: makeNotionPageDate(event_1),\n                            name: page.properties.Name.title[0].text.content,\n                        });\n                    }\n                }\n            }\n            else {\n                // delete event in page\n                result.delete_pages.push({\n                    id: page.id,\n                });\n            }\n        }\n        else {\n            //add to gcal\n            result.create_events.push(__assign({ page_id: page.id, description: makeEventDescription(page), summary: page.properties.Name.title[0].text.content }, makeCalenderEventDate(page)));\n        }\n    }\n    for (var _c = 0, _d = Array.from(followEventMap); _c < _d.length; _c++) {\n        var _e = _d[_c], _ = _e[0], event_2 = _e[1];\n        // delete in gcal\n        result.delete_events.push({\n            id: event_2.id,\n        });\n    }\n    for (var _f = 0, _g = Array.from(addToNotionList); _f < _g.length; _f++) {\n        var event_3 = _g[_f];\n        // add to notion\n        result.create_pages.push({\n            name: event_3.summary,\n            gcal_id: event_3.id,\n            event_description: event_3.description || \"\",\n            date: makeNotionPageDate(event_3),\n        });\n    }\n    return [{\n            json: result,\n        }];\n}\nexports.main = main;\nreturn main(items)\n\n"
+        "functionCode": "\"use strict\";\n/**\n * gcal\n *   all day => yyyy-mm-dd\n *   with time => iso8601 with timezone(ex. +9)\n * notion\n *   all day => yyyy-mm-dd\n *   with time => iso8601 with timezone(input time zone)\n * js\n *   Support for ISO 8601 formats differs in that date-only strings (e.g. \"1970-01-01\") are treated as UTC, not local.\n */\nvar __assign = (this && this.__assign) || function () {\n    __assign = Object.assign || function(t) {\n        for (var s, i = 1, n = arguments.length; i < n; i++) {\n            s = arguments[i];\n            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))\n                t[p] = s[p];\n        }\n        return t;\n    };\n    return __assign.apply(this, arguments);\n};\nObject.defineProperty(exports, \"__esModule\", { value: true });\nexports.main = void 0;\n// ======================= set const =======================\nvar ONE_DAY_UNIX_TIME = 86400000;\nvar ADD_TO_NOTION_MARK = [\"notion: \", \"notion : \", \"Notion: \", \"Notion : \", \"notion:\", \"notion :\", \"Notion:\", \"Notion :\"];\nvar ADDED_TO_NOTION_MARK = \"NOTION_ID: \";\nvar NOTION_GCAL_ID_PROPERTY_NAME = \"GCal Id\";\nvar NOTION_DATE_PROPERTY_NAME = \"Start-End Time\";\nvar TIME_ZONE = \"Asia/Seoul\";\nvar DEFAULT_RANGE = 30 * 60 * 1000; // 30 min\n// ======================= set function =======================\nfunction getTImeZoneOffset() {\n    var dateText = Intl.DateTimeFormat([], { timeZone: TIME_ZONE, timeZoneName: \"short\" }).format(new Date);\n    var timezoneString = dateText.split(\" \")[1].slice(3);\n    var timezoneOffsetMin = parseInt(timezoneString.split(':')[0]) * 60;\n    if (timezoneString.includes(\":\")) {\n        timezoneOffsetMin = timezoneOffsetMin + parseInt(timezoneString.split(':')[1]);\n    }\n    return timezoneOffsetMin;\n}\nfunction getTimeZone() {\n    var timezoneOffsetMin = getTImeZoneOffset();\n    var offsetHrs = Math.abs(timezoneOffsetMin / 60);\n    var offsetMin = Math.abs(timezoneOffsetMin % 60);\n    var timezoneStandard = 'Z';\n    if (offsetHrs < 10) {\n        offsetHrs = '0' + offsetHrs;\n    }\n    if (offsetMin < 10) {\n        offsetMin = '0' + offsetMin;\n    }\n    if (timezoneOffsetMin > 0) {\n        timezoneStandard = '+' + offsetHrs + ':' + offsetMin;\n    }\n    else if (timezoneOffsetMin < 0) {\n        timezoneStandard = '-' + offsetHrs + ':' + offsetMin;\n    }\n    return timezoneStandard;\n}\nfunction makeIso8601WithTZ(time) {\n    var timezoneOffsetMin = getTImeZoneOffset();\n    if (timezoneOffsetMin > 0) {\n        time = time + (Math.abs(timezoneOffsetMin)) * 60 * 1000;\n    }\n    else if (timezoneOffsetMin < 0) {\n        time = time - (Math.abs(timezoneOffsetMin)) * 60 * 1000;\n    }\n    var dt = new Date(time).toISOString();\n    var currentDatetime = dt.substring(0, dt.length - 5); // delete '.000Z'\n    return currentDatetime + getTimeZone();\n}\nfunction makePageState(page) {\n    var startDateTime = page.properties[NOTION_DATE_PROPERTY_NAME].date.start;\n    var endDateTime = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end\n        ? null\n        : page.properties[NOTION_DATE_PROPERTY_NAME].date.end;\n    var pageStart = Date.parse(startDateTime.includes(\"T\")\n        ? startDateTime\n        : startDateTime + (\"T00:00:00\" + getTimeZone()));\n    var pageEnd = !endDateTime\n        ? null\n        : Date.parse(endDateTime.includes(\"T\")\n            ? endDateTime\n            : endDateTime + (\"T00:00:00\" + getTimeZone()));\n    var isPageAllDay = !startDateTime.includes(\"T\");\n    var isPageOneDayAllDAy = isPageAllDay && pageEnd === null;\n    return {\n        pageStart: pageStart,\n        pageEnd: pageEnd,\n        isPageAllDay: isPageAllDay,\n        isPageOneDayAllDAy: isPageOneDayAllDAy,\n    };\n}\nfunction makeEventState(event) {\n    var startDateTime = event.start.dateTime || event.start.date;\n    var endDateTime = event.end.dateTime || event.end.date;\n    var eventStart = Date.parse(startDateTime.includes(\"T\")\n        ? startDateTime\n        : startDateTime + (\"T00:00:00\" + getTimeZone()));\n    var eventEnd = Date.parse(endDateTime.includes(\"T\")\n        ? endDateTime\n        : endDateTime + (\"T00:00:00\" + getTimeZone()));\n    var isEventAllDay = !!event.start.date;\n    var isEventOneDayAllDay = isEventAllDay && eventEnd - eventStart === ONE_DAY_UNIX_TIME;\n    return {\n        eventStart: eventStart,\n        eventEnd: eventEnd,\n        isEventAllDay: isEventAllDay,\n        isEventOneDayAllDay: isEventOneDayAllDay,\n    };\n}\n// ADDED_TO_NOTION_MARK https://notion.so/xxxx/<id> => <id>\nfunction makePageId(event) {\n    var descriptoin = event.description;\n    var firstLine;\n    if (descriptoin.includes(\"\\n\")) {\n        firstLine = descriptoin.substring(0, descriptoin.indexOf(\"\\n\"));\n    }\n    else {\n        firstLine = descriptoin.substring(0, descriptoin.indexOf(\"<br>\"));\n    }\n    return firstLine.substring(ADDED_TO_NOTION_MARK.length);\n}\nfunction makeEventDescription(page) {\n    return \"\" + ADDED_TO_NOTION_MARK + page.id + \"\\nhttps://notion.so/\" + page.id + \"\\n\";\n}\nfunction makeNotionPageDate(event) {\n    var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventAllDay = _a.isEventAllDay, isEventOneDayAllDay = _a.isEventOneDayAllDay;\n    var eventStartString = makeIso8601WithTZ(eventStart);\n    // const eventEndString = makeIso8601WithTZ(isEventAllDay ? eventEnd - ONE_DAY_UNIX_TIME : eventEnd);\n    var eventEndString = isEventOneDayAllDay ? null : makeIso8601WithTZ(isEventAllDay ? (eventEnd - ONE_DAY_UNIX_TIME) : eventEnd);\n    return {\n        // start: eventStartString,\n        // end: eventEndString,\n        is_all_day: isEventAllDay,\n        timezone: TIME_ZONE,\n        start: isEventAllDay\n            ? eventStartString.substring(0, eventStartString.indexOf(\"T\"))\n            : eventStartString,\n        end: eventEndString == null\n            ? null\n            : isEventAllDay\n                ? eventEndString.substring(0, eventEndString.indexOf(\"T\"))\n                : eventEndString,\n    };\n}\nfunction makeCalenderEventDate(page) {\n    var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageAllDay = _a.isPageAllDay;\n    var startTime = makeIso8601WithTZ(pageStart);\n    // const startTime = new Date(pageStart).toISOString();\n    var endTime = isPageAllDay\n        ? makeIso8601WithTZ((pageEnd || pageStart) + ONE_DAY_UNIX_TIME)\n        : makeIso8601WithTZ(pageEnd || (pageStart + DEFAULT_RANGE));\n    // const endTime = isPageAllDay\n    //     ? new Date((pageEnd || pageStart) + ONE_DAY_UNIX_TIME).toISOString()\n    //     : new Date(pageEnd || pageStart + DEFAULT_RANGE).toISOString(); //add 30 min\n    return {\n        date: {\n            // start: startTime,\n            // end: endTime,\n            start: isPageAllDay\n                ? startTime.substring(0, startTime.indexOf(\"T\"))\n                : startTime,\n            end: isPageAllDay\n                ? endTime.substring(0, endTime.indexOf(\"T\"))\n                : endTime,\n            is_all_day: isPageAllDay,\n            timezone: TIME_ZONE,\n        },\n    };\n}\n// ======================= set main function =======================\nfunction main(n8nItems) {\n    var events = n8nItems[0].json.calendar;\n    var pages = n8nItems[1].json.notion;\n    if (!Object.keys(events[0]).length) {\n        events = [];\n    }\n    if (!Object.keys(pages[0]).length) {\n        pages = [];\n    }\n    var result = {\n        create_events: [],\n        create_pages: [],\n        delete_events: [],\n        delete_pages: [],\n        update_events: [],\n        update_pages: [],\n    };\n    var eventPages = pages.filter(function (p) { return p.properties && p.properties[NOTION_DATE_PROPERTY_NAME]; });\n    var addToNotionList = [];\n    var followEventMap = new Map();\n    events.forEach(function (e) {\n        for (var _i = 0, ADD_TO_NOTION_MARK_1 = ADD_TO_NOTION_MARK; _i < ADD_TO_NOTION_MARK_1.length; _i++) {\n            var mark = ADD_TO_NOTION_MARK_1[_i];\n            if (e.summary && e.summary.startsWith(mark)) {\n                addToNotionList.push(e);\n                e.summary = e.summary.substring(mark.length);\n                break;\n            }\n        }\n        if (e.description && e.description.startsWith(ADDED_TO_NOTION_MARK)) {\n            followEventMap.set(e.id, e);\n        }\n    });\n    for (var _i = 0, eventPages_1 = eventPages; _i < eventPages_1.length; _i++) {\n        var page = eventPages_1[_i];\n        var _a = makePageState(page), pageStart = _a.pageStart, pageEnd = _a.pageEnd, isPageOneDayAllDAy = _a.isPageOneDayAllDAy;\n        var gcalInfo = page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0];\n        if (gcalInfo) {\n            var gcalIdInPage = gcalInfo.plain_text;\n            var event_1 = followEventMap.get(gcalIdInPage);\n            if (event_1) {\n                var _b = makeEventState(event_1), eventStart = _b.eventStart, eventEnd = _b.eventEnd, isEventOneDayAllDay = _b.isEventOneDayAllDay;\n                var pageIdInEvent = makePageId(event_1);\n                followEventMap.delete(gcalIdInPage);\n                // check diff\n                if ((pageStart == eventStart) // start time\n                    && ((isPageOneDayAllDAy && isEventOneDayAllDay) // one day \n                        || (!isPageOneDayAllDAy && (pageEnd == eventEnd)) // end time TODO: FIX one day diff between(+1) page and event\n                        || (pageEnd == null && !isPageOneDayAllDAy && pageStart + DEFAULT_RANGE == eventEnd)) // not contained page and calendar DEFAULT_RANGE ;\n                ) {\n                    // same event\n                    // do nothing\n                }\n                else {\n                    // update\n                    var notionLastEditTime = Date.parse(page.last_edited_time);\n                    var eventLastEditTime = Date.parse(event_1.updated);\n                    if (notionLastEditTime > eventLastEditTime) {\n                        var summary = page.properties.Name.title[0] ? page.properties.Name.title[0].text.content : \"\";\n                        // update evnet\n                        result.update_events.push(__assign({ id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text, summary: summary }, makeCalenderEventDate(page)));\n                    }\n                    else {\n                        // update page\n                        result.update_pages.push({\n                            id: pageIdInEvent,\n                            date: makeNotionPageDate(event_1),\n                            name: page.properties.Name.title[0].text.content,\n                        });\n                    }\n                }\n            }\n            else {\n                // delete event in page\n                result.delete_pages.push({\n                    id: page.id,\n                });\n            }\n        }\n        else {\n            //add to gcal\n            result.create_events.push(__assign({ page_id: page.id, description: makeEventDescription(page), summary: page.properties.Name.title[0].text.content }, makeCalenderEventDate(page)));\n        }\n    }\n    for (var _c = 0, _d = Array.from(followEventMap); _c < _d.length; _c++) {\n        var _e = _d[_c], _ = _e[0], event_2 = _e[1];\n        // delete in gcal\n        result.delete_events.push({\n            id: event_2.id,\n        });\n    }\n    for (var _f = 0, _g = Array.from(addToNotionList); _f < _g.length; _f++) {\n        var event_3 = _g[_f];\n        // add to notion\n        result.create_pages.push({\n            name: event_3.summary,\n            gcal_id: event_3.id,\n            event_description: event_3.description || \"\",\n            date: makeNotionPageDate(event_3),\n        });\n    }\n    return [{\n            json: result,\n        }];\n}\nexports.main = main;\nreturn main(items)\n\n"
       },
       "name": "Action Maker",
       "type": "n8n-nodes-base.function",
@@ -132,7 +132,7 @@
     },
     {
       "parameters": {
-        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
         "start": "={{$json[\"date\"][\"start\"]}}",
         "end": "={{$json[\"date\"][\"end\"]}}",
         "additionalFields": {
@@ -160,7 +160,7 @@
         "propertiesUi": {
           "propertyValues": [
             {
-              "key": "FIX-End|date",
+              "key": "Start-End Time|date",
               "allday": "={{$json[\"date\"][\"is_all_day\"]}}",
               "timezone": "={{$json[\"date\"][\"timezone\"]}}",
               "date": "={{$json[\"date\"][\"start\"]}}"
@@ -194,27 +194,6 @@
       "credentials": {
         "notionApi": "Notion API key"
       },
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "triggerTimes": {
-          "item": [
-            {
-              "mode": "everyX",
-              "value": 5,
-              "unit": "minutes"
-            }
-          ]
-        }
-      },
-      "name": "Cron1",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [
-        220,
-        1050
-      ],
       "disabled": true
     },
     {
@@ -256,7 +235,7 @@
     {
       "parameters": {
         "operation": "update",
-        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
         "eventId": "={{$json[\"gcal_id\"]}}",
         "updateFields": {
           "description": "={{$json[\"description\"]}}",
@@ -289,36 +268,11 @@
     {
       "parameters": {
         "resource": "databasePage",
-        "operation": "update",
-        "pageId": "={{$json[\"id\"]}}",
+        "databaseId": "3e5fa45b-1ced-42de-9344-441cbe033079",
         "propertiesUi": {
           "propertyValues": [
             {
-              "key": "GCal Id|rich_text",
-              "textContent": "={{$json[\"gcal_id\"]}}"
-            }
-          ]
-        }
-      },
-      "name": "Create Page1",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 1,
-      "position": [
-        1750,
-        350
-      ],
-      "credentials": {
-        "notionApi": "Notion API key"
-      }
-    },
-    {
-      "parameters": {
-        "resource": "databasePage",
-        "databaseId": "2ad4848e-ab72-4165-8086-0d1d2efc34c6",
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "FIX-End|date",
+              "key": "Start-End Time|date",
               "range": true,
               "timezone": "={{$json[\"date\"][\"timezone\"]}}",
               "dateStart": "={{$json[\"date\"][\"start\"]}}",
@@ -352,11 +306,11 @@
     {
       "parameters": {
         "resource": "databasePage",
-        "databaseId": "2ad4848e-ab72-4165-8086-0d1d2efc34c6",
+        "databaseId": "3e5fa45b-1ced-42de-9344-441cbe033079",
         "propertiesUi": {
           "propertyValues": [
             {
-              "key": "FIX-End|date",
+              "key": "Start-End Time|date",
               "allday": "={{$json[\"date\"][\"is_all_day\"]}}",
               "timezone": "={{$json[\"date\"][\"timezone\"]}}",
               "date": "=2021-06-03"
@@ -452,37 +406,8 @@
     },
     {
       "parameters": {
-        "resource": "databasePage",
         "operation": "update",
-        "pageId": "={{$json[\"id\"]}}",
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "FIX-End|date",
-              "range": true,
-              "allday": "={{$json[\"date\"][\"is_all_day\"]}}",
-              "timezone": "={{$json[\"date\"][\"timezone\"]}}",
-              "dateStart": "={{$json[\"date\"][\"start\"]}}",
-              "dateEnd": "={{$json[\"date\"][\"end\"]}}"
-            }
-          ]
-        }
-      },
-      "name": "Update Page1",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 1,
-      "position": [
-        1550,
-        650
-      ],
-      "credentials": {
-        "notionApi": "Notion API key"
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
         "eventId": "={{$json[\"id\"]}}",
         "updateFields": {
           "allday": "={{$json[\"date\"][\"is_all_day\"]}}",
@@ -504,12 +429,66 @@
     },
     {
       "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{$json[\"id\"]}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "GCal Id|rich_text",
+              "textContent": "={{$json[\"gcal_id\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Add GCal Id in Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1750,
+        350
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{$json[\"id\"]}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Start-End Time|date",
+              "range": true,
+              "allday": "={{$json[\"date\"][\"is_all_day\"]}}",
+              "timezone": "={{$json[\"date\"][\"timezone\"]}}",
+              "dateStart": "={{$json[\"date\"][\"start\"]}}",
+              "dateEnd": "={{$json[\"date\"][\"end\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Update Page Range Date",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        650
+      ],
+      "credentials": {
+        "notionApi": "Notion API key"
+      }
+    },
+    {
+      "parameters": {
         "operation": "delete",
-        "calendar": "u8pnhjhc00s3325f0ogl1q4gso@group.calendar.google.com",
+        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
         "eventId": "={{$json[\"id\"]}}",
         "options": {}
       },
-      "name": "Google Calendar",
+      "name": "Delete Event",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1,
       "position": [
@@ -519,6 +498,26 @@
       "credentials": {
         "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
       }
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 20,
+              "unit": "minutes"
+            }
+          ]
+        }
+      },
+      "name": "Interval",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        160,
+        880
+      ]
     }
   ],
   "connections": {
@@ -745,17 +744,6 @@
         ]
       ]
     },
-    "Create Page1": {
-      "main": [
-        [
-          {
-            "node": "Loop Create Events",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "IF Range Page": {
       "main": [
         [
@@ -778,7 +766,7 @@
       "main": [
         [
           {
-            "node": "Create Page1",
+            "node": "Add GCal Id in Page",
             "type": "main",
             "index": 0
           }
@@ -796,18 +784,7 @@
         ],
         [
           {
-            "node": "Update Page1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Page1": {
-      "main": [
-        [
-          {
-            "node": "Loop Update Pages",
+            "node": "Update Page Range Date",
             "type": "main",
             "index": 0
           }
@@ -840,7 +817,45 @@
       "main": [
         [
           {
-            "node": "Google Calendar",
+            "node": "Delete Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add GCal Id in Page": {
+      "main": [
+        [
+          {
+            "node": "Loop Create Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Page Range Date": {
+      "main": [
+        [
+          {
+            "node": "Loop Update Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interval": {
+      "main": [
+        [
+          {
+            "node": "Get Notion ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Calender",
             "type": "main",
             "index": 0
           }
@@ -848,7 +863,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {},
-  "id": "3"
+  "id": "4"
 }
