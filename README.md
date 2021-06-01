@@ -4,7 +4,7 @@
 
 ### Feature
 
-- [x] sync at 20 min(default, you can change it)
+- [x] sync every 20 minutes(default, you can change it)
 - [x] create
     - [x] notion -> gcal
     - [x] gcal -> notion
