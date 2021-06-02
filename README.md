@@ -18,7 +18,7 @@
     - [x] notion -> gcal
     - [ ] gcal -> notion
          > Notion do not support delete api
-- [ ] support recurring events(comming soon)
+- [ ] support recurring events(coming soon)
 - [ ] easy setup
     - [ ] combine setting data in workflow
 - [ ] using offical n8n
@@ -67,7 +67,9 @@
         example: `Start-End Time|date`
 8. Set Interval
     1. set interval in `Interval` node
-1. Active this workflows  
+2. test workflow  
+    Click `Execute Workflow`(bottom)
+4. Active this workflows  
     check `Active` button (upper right)
 
 #### USAGE
