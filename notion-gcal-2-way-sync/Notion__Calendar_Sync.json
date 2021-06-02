@@ -131,7 +131,7 @@
         350
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+        "googleCalendarOAuth2Api": "Google Calendar OAuth2 API"
       }
     },
     {
@@ -232,7 +232,7 @@
         100
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+        "googleCalendarOAuth2Api": "Google Calendar OAuth2 API"
       }
     },
     {
@@ -406,7 +406,7 @@
         810
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+        "googleCalendarOAuth2Api": "Google Calendar OAuth2 API"
       }
     },
     {
@@ -475,10 +475,10 @@
       "typeVersion": 1,
       "position": [
         1350,
-        1280
+        1180
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calender OAuth2 API"
+        "googleCalendarOAuth2Api": "Google Calendar OAuth2 API"
       }
     },
     {
@@ -856,6 +856,17 @@
         [
           {
             "node": "Map ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Event": {
+      "main": [
+        [
+          {
+            "node": "Loop Delete Events",
             "type": "main",
             "index": 0
           }
