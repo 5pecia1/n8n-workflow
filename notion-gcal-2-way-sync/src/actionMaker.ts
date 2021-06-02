@@ -259,7 +259,7 @@ function makePageId(event: CalendarEvent): string {
 }
 
 function makeEventDescription(page: NotionPage): string {
-    return `${ADDED_TO_NOTION_MARK}${page.id}\nhttps://notion.so/${page.id}\n`;
+    return `${ADDED_TO_NOTION_MARK}${page.id}\nhttps://notion.so/${page.id.replace(/-/g, '')}\n`;
 }
 
 function makeNotionPageDate(event: CalendarEvent): NotionOuputDate {

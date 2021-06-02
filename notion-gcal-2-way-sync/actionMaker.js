@@ -124,7 +124,7 @@ function makePageId(event) {
     return firstLine.substring(ADDED_TO_NOTION_MARK.length);
 }
 function makeEventDescription(page) {
-    return "" + ADDED_TO_NOTION_MARK + page.id + "\nhttps://notion.so/" + page.id + "\n";
+    return "" + ADDED_TO_NOTION_MARK + page.id + "\nhttps://notion.so/" + page.id.replace(/-/g, '') + "\n";
 }
 function makeNotionPageDate(event) {
     var _a = makeEventState(event), eventStart = _a.eventStart, eventEnd = _a.eventEnd, isEventAllDay = _a.isEventAllDay, isEventOneDayAllDay = _a.isEventOneDayAllDay;
