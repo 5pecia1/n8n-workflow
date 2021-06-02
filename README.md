@@ -2,6 +2,8 @@
 
 ## notion & google calendar 2 way sync
 
+![](./resource/notion-gcal.png)
+
 ### Feature
 
 - [x] sync every 20 minutes(default, you can change it)
