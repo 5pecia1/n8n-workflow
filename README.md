@@ -18,7 +18,7 @@
     - [x] notion -> gcal
     - [ ] gcal -> notion
          > Notion do not support delete api
-- [ ] support recurring events(comming soon)
+- [ ] support recurring events(coming soon)
 - [ ] easy setup
     - [ ] combine setting data in workflow
 - [ ] using offical n8n
