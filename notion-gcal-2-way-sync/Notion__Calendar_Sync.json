@@ -114,7 +114,7 @@
     },
     {
       "parameters": {
-        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
+        "calendar": "={{$node[\"Get Calendar\"].parameter[\"calendar\"]}}",
         "start": "={{$json[\"date\"][\"start\"]}}",
         "end": "={{$json[\"date\"][\"end\"]}}",
         "additionalFields": {
@@ -217,7 +217,7 @@
     {
       "parameters": {
         "operation": "update",
-        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
+        "calendar": "={{$node[\"Get Calendar\"].parameter[\"calendar\"]}}",
         "eventId": "={{$json[\"gcal_id\"]}}",
         "updateFields": {
           "description": "={{$json[\"description\"]}}",
@@ -389,7 +389,7 @@
     {
       "parameters": {
         "operation": "update",
-        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
+        "calendar": "={{$node[\"Get Calendar\"].parameter[\"calendar\"]}}",
         "eventId": "={{$json[\"id\"]}}",
         "updateFields": {
           "allday": "={{$json[\"date\"][\"is_all_day\"]}}",
@@ -466,7 +466,7 @@
     {
       "parameters": {
         "operation": "delete",
-        "calendar": "rigfejc1f335t8q0m6bepi04e0@group.calendar.google.com",
+        "calendar": "={{$node[\"Get Calendar\"].parameter[\"calendar\"]}}",
         "eventId": "={{$json[\"id\"]}}",
         "options": {}
       },
@@ -914,11 +914,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Set Environments": {
-      "main": [
-        []
       ]
     }
   },
