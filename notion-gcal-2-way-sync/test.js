@@ -1,4 +1,4 @@
-const actionMaker = require('./lib/actionMaker');
+const actionMaker = require('./dist/index');
 
 const val =
     [
