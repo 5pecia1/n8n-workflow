@@ -9,10 +9,10 @@
  *   Support for ISO 8601 formats differs in that date-only strings (e.g. "1970-01-01") are treated as UTC, not local.
  */
 
-import { ADDED_TO_NOTION_MARK, ADD_TO_NOTION_MARK, DEFAULT_RANGE, NOTION_DATE_PROPERTY_NAME, NOTION_GCAL_ID_PROPERTY_NAME } from "./configure";
+import { ADDED_TO_NOTION_MARK, ADD_TO_NOTION_MARK, DEFAULT_RANGE, NOTION_DATE_PROPERTY_NAME } from "./configure";
 
-import { CreatePage, DeletePage, makePageState, NotionPage, UpdatePage } from "./notion"
-import { CalendarEvent, CreateEvent, DeleteEvent, makeEventState, UpdateEvent} from "./google-calendar"
+import { CreatePage, DeletePage, getNotionGCalIdProperty, getNotionNameProperty, makePageState, NotionPage, UpdatePage } from "./notion"
+import { CalendarEvent, CreateEvent, DeleteEvent, makeEventState, UpdateEvent } from "./google-calendar"
 import { makeCalendarEventDate, makeEventDescription, makeNotionPageDate, makePageId } from "./utils";
 
 type Actions = {
@@ -50,6 +50,7 @@ export function main(n8nItems: any): Result {
         update_events: [],
         update_pages: [],
     };
+    let cnt = 0;
     const eventPages = pages.filter(p => p.properties && p.properties[NOTION_DATE_PROPERTY_NAME]);
     const addToNotionList: CalendarEvent[] = [];
     const followEventMap = new Map<string, CalendarEvent>();
@@ -72,7 +73,7 @@ export function main(n8nItems: any): Result {
     for (const page of eventPages) {
         const { pageStart, pageEnd, isPageOneDayAllDAy } = makePageState(page);
 
-        const gcalInfo = page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0];
+        const gcalInfo = getNotionGCalIdProperty(page).rich_text[0];
         if (gcalInfo) {
             const gcalIdInPage = gcalInfo.plain_text;
             const event = followEventMap.get(gcalIdInPage);
@@ -98,10 +99,10 @@ export function main(n8nItems: any): Result {
                     const eventLastEditTime = Date.parse(event.updated);
 
                     if (notionLastEditTime > eventLastEditTime) {
-                        const summary = page.properties.Name.title[0] ? page.properties.Name.title[0].text.content : "";
+                        const summary = getNotionNameProperty(page).title[0] ? getNotionNameProperty(page).title[0].text.content : "";
                         // update evnet
                         result.update_events.push({
-                            id: page.properties[NOTION_GCAL_ID_PROPERTY_NAME].rich_text[0].plain_text,
+                            id: getNotionGCalIdProperty(page).rich_text[0].plain_text,
                             summary: summary,
                             ...makeCalendarEventDate(page),
                         });
@@ -110,7 +111,7 @@ export function main(n8nItems: any): Result {
                         result.update_pages.push({
                             id: pageIdInEvent,
                             date: makeNotionPageDate(event),
-                            name: page.properties.Name.title[0].text.content,
+                            name: getNotionNameProperty(page).title[0].text.content,
                         });
                     }
                 }
@@ -125,7 +126,7 @@ export function main(n8nItems: any): Result {
             result.create_events.push({
                 page_id: page.id,
                 description: makeEventDescription(page),
-                summary: page.properties.Name.title[0].text.content,
+                summary: getNotionNameProperty(page).title[0].text.content,
                 ...makeCalendarEventDate(page),
             });
         }

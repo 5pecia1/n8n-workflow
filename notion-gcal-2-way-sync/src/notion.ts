@@ -5,26 +5,28 @@ export type NotionDate = {
     start: string;
     end: string | null;
 }
+export type NotionDateProperty = {
+    date: NotionDate;
+}
+export type NotionGCalIdProperty = {
+    rich_text: {
+        plain_text: string;
+    }[];
+}
+
+export type NotionNameProperty = {
+    title: {
+        text: {
+            content: string;
+        };
+    }[];
+}
 
 export type NotionPage = {
     id: string;
     last_edited_time: string;
     properties: {
-        [NOTION_DATE_PROPERTY_NAME]: {
-            date: NotionDate;
-        };
-        [NOTION_GCAL_ID_PROPERTY_NAME]: {
-            rich_text: {
-                plain_text: string;
-            }[];
-        };
-        Name: {
-            title: {
-                text: {
-                    content: string;
-                };
-            }[];
-        };
+        [key: string]: NotionDateProperty | NotionGCalIdProperty | NotionNameProperty;
     };
 };
 
@@ -58,10 +60,10 @@ export type PageState = {
 }
 
 export function makePageState(page: NotionPage): PageState {
-    const startDateTime = page.properties[NOTION_DATE_PROPERTY_NAME].date.start;
-    const endDateTime: string | null = !page.properties[NOTION_DATE_PROPERTY_NAME].date.end
+    const startDateTime = getNotionDateProperty(page).date.start;
+    const endDateTime: string | null = !getNotionDateProperty(page).date.end
         ? null
-        : page.properties[NOTION_DATE_PROPERTY_NAME].date.end as string;
+        : getNotionDateProperty(page).date.end as string;
 
     const pageStart = Date.parse(
         startDateTime.includes("T")
@@ -86,4 +88,16 @@ export function makePageState(page: NotionPage): PageState {
         isPageAllDay: isPageAllDay,
         isPageOneDayAllDAy: isPageOneDayAllDAy,
     };
+}
+
+export function getNotionDateProperty(page: NotionPage): NotionDateProperty {
+    return page.properties[NOTION_DATE_PROPERTY_NAME] as NotionDateProperty;
+}
+
+export function getNotionGCalIdProperty(page: NotionPage): NotionGCalIdProperty {
+    return page.properties[NOTION_GCAL_ID_PROPERTY_NAME] as NotionGCalIdProperty;
+}
+
+export function getNotionNameProperty(page: NotionPage): NotionNameProperty {
+    return page.properties.Name as NotionNameProperty;
 }

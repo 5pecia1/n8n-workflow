@@ -1,3 +1,39 @@
+$node = {
+    "Set Environments": {
+        parameter: {
+            values: {
+                "string": [
+                    {
+                        "name": "add to notion mark in gcal",
+                        "value": "notion:,notion :,Notion:,Notion :,notion:,notion :,Notion:,Notion :"
+                    },
+                    {
+                        "name": "notion mark in gcal",
+                        "value": "NOTION_ID: "
+                    },
+                    {
+                        "name": "gcal id property in notion",
+                        "value": "GCal Id"
+                    },
+                    {
+                        "name": "notion date property",
+                        "value": "Start-End Time"
+                    },
+                    {
+                        "name": "time zone",
+                        "value": "Asia/Seoul"
+                    }
+                ],
+                "number": [
+                    {
+                        "name": "default calendar range(min)",
+                        "value": 30
+                    }
+                ]
+            }
+        }
+    }
+}
 const actionMaker = require('./dist/index');
 
 const val =
