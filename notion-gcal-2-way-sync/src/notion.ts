@@ -36,7 +36,9 @@ export type NotionOutputDate = {
 } & NotionDate;
 
 export type CreatePage = {
+    date_property_name: string;
     date: NotionOutputDate;
+    gcal_id_property_name: string;
     gcal_id: string;
     event_description: string;
     name: string;
@@ -45,6 +47,7 @@ export type CreatePage = {
 export type UpdatePage = {
     id: string;
     name: string;
+    date_property_name: string;
     date: NotionOutputDate;
 };
 

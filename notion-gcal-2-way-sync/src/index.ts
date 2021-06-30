@@ -9,7 +9,7 @@
  *   Support for ISO 8601 formats differs in that date-only strings (e.g. "1970-01-01") are treated as UTC, not local.
  */
 
-import { ADDED_TO_NOTION_MARK, ADD_TO_NOTION_MARK, DEFAULT_RANGE, NOTION_DATE_PROPERTY_NAME } from "./configure";
+import { ADDED_TO_NOTION_MARK, ADD_TO_NOTION_MARK, DEFAULT_RANGE, NOTION_DATE_PROPERTY_NAME, NOTION_GCAL_ID_PROPERTY_NAME } from "./configure";
 
 import { CreatePage, DeletePage, getNotionGCalIdProperty, getNotionNameProperty, makePageState, NotionPage, UpdatePage } from "./notion"
 import { CalendarEvent, CreateEvent, DeleteEvent, makeEventState, UpdateEvent } from "./google-calendar"
@@ -110,6 +110,7 @@ export function main(n8nItems: any): Result {
                         // update page
                         result.update_pages.push({
                             id: pageIdInEvent,
+                            date_property_name: NOTION_DATE_PROPERTY_NAME,
                             date: makeNotionPageDate(event),
                             name: getNotionNameProperty(page).title[0].text.content,
                         });
@@ -144,7 +145,9 @@ export function main(n8nItems: any): Result {
         result.create_pages.push({
             name: event.summary,
             gcal_id: event.id,
+            gcal_id_property_name: NOTION_GCAL_ID_PROPERTY_NAME,
             event_description: event.description || "",
+            date_property_name: NOTION_DATE_PROPERTY_NAME,
             date: makeNotionPageDate(event),
         });
     }
