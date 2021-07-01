@@ -51,20 +51,21 @@
     * name: `GCal Id`, type: **text**
 7. Change your calendar, notion information in workflow nodes  
     Nodes Chekclist
+    * `Set Environments`
+        * `notion date property`'s Value  
+          `Start-End Time` change to your date property name in notion db
+        * `time zone`'s Value
+          find your timezone in [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
     * `Get Notion`
         * Notion API
         * Database ID
-    * `Get Calendar`, `Create Evnet`, `Update Description`, `Update Evnet`, `Delete Event`
+    * `Get Calendar`, 
         * Google Calendar OAuth
         * Calendar ID
-    * `Action Maker`
-        * `var NOTION_DATE_PROPERTY_NAME = "Start-End Time";`  
-        `Start-End Time` change to your date property name in notion db
+    * `Create Evnet`, `Update Description`, `Update Evnet`, `Delete Event`
+        * Google Calendar OAuth
     * `Create Page`, `Create Page Range Date`, `Update Page`, `Update Page Range Date`
         * Notion API
-        * Key in date first property. Set as below.  
-        `<your date property name in notion db>|date`  
-        example: `Start-End Time|date`
 8. Set Interval
     1. set interval in `Interval` node
 2. test workflow  
@@ -91,6 +92,8 @@
 
 
 ### Develop
+
+[notion-gcal-2-way-sync#README.md](./notion-gcal-2-way-sync/README.md)
 
 #### Action Maker
 
