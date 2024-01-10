@@ -1,4 +1,4 @@
-# My n8n workflowa
+# My n8n workflow
 
 - [My n8n workflow](#my-n8n-workflow)
   * [Notion mind map](#notion-mind-map)
