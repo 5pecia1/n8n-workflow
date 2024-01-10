@@ -61,7 +61,7 @@
     4. Select [`./notion-mindmap/Notion__Mindmap.json`](./notion-mindmap/Notion_mindmap.json)
 4. Set Notion Credentials in n8n
     * Notion reference: https://docs.n8n.io/credentials/notion/
-5. Change your notion information in workflow nodes
+5. Change your notion information in workflow nodes(`Send notion credential`)
 6. Set your n8n url in `Set Environments` node (ex. http://localhost:5678)
 4. Active this workflows  
     check `Active` button (upper right)
