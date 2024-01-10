@@ -69,7 +69,7 @@
 #### USAGE
 
 1. Copy notion page url(ctrl + l)
-2. Add n8n connections (ref: `Set And Run > 4. Set Notion Credentials in n8n`)  
+2. Add n8n connections in page(ref: `Set And Run > 4. Set Notion Credentials in n8n`)  
   ![](./resource/notion-connection.png)
 3. embed mindmap url in notion page (ex: http://localhost:5678/workflow/xxxx-xx-xx-xx?notion={notion url})
 
