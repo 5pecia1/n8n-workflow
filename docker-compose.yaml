@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  n8n:
+    container_name: n8n
+    restart: always
+    image: n8nio/n8n:1.22.4
+    environment:
+      - GENERIC_TIMEZONE=Asia/Seoul
+      - TZ=Asia/Seoul
+      - N8N_PORT=${N8N_PORT}
+      - N8N_LOG_LEVEL=debug
+      - NODE_ENV=production
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+    volumes:
+      - ./.n8n:/home/node/.n8n
+      # for @notionhq, notion-to-md
+      - ./notion-mindmap/node_modules/node_modules/asynckit:/usr/local/lib/node_modules/asynckit
+      - ./notion-mindmap/node_modules/node_modules/delayed-stream:/usr/local/lib/node_modules/delayed-stream 
+      - ./notion-mindmap/node_modules/node_modules/markdown-table:/usr/local/lib/node_modules/markdown-table 
+      - ./notion-mindmap/node_modules/node_modules/mime-types:/usr/local/lib/node_modules/mime-types 
+      - ./notion-mindmap/node_modules/node_modules/@notionhq:/usr/local/lib/node_modules/@notionhq 
+      - ./notion-mindmap/node_modules/node_modules/repeat-string:/usr/local/lib/node_modules/repeat-string
+      - ./notion-mindmap/node_modules/node_modules/@types:/usr/local/lib/node_modules/@types 
+      - ./notion-mindmap/node_modules/node_modules/webidl-conversions:/usr/local/lib/node_modules/webidl-conversions
+      - ./notion-mindmap/node_modules/node_modules/combined-stream:/usr/local/lib/node_modules/combined-stream 
+      - ./notion-mindmap/node_modules/node_modules/form-data:/usr/local/lib/node_modules/form-data
+      - ./notion-mindmap/node_modules/node_modules/mime-db:/usr/local/lib/node_modules/mime-db
+      - ./notion-mindmap/node_modules/node_modules/node-fetch:/usr/local/lib/node_modules/node-fetch
+      - ./notion-mindmap/node_modules/node_modules/notion-to-md:/usr/local/lib/node_modules/notion-to-md 
+      - ./notion-mindmap/node_modules/node_modules/tr46:/usr/local/lib/node_modules/tr46 
+      - ./notion-mindmap/node_modules/node_modules/undici-types:/usr/local/lib/node_modules/undici-types 
+      - ./notion-mindmap/node_modules/node_modules/whatwg-url:/usr/local/lib/node_modules/whatwg-url
+    ports:
+        - ${N8N_PORT}:${N8N_PORT}
