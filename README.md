@@ -38,6 +38,7 @@
 
 #### Prerequisites
 
+* linux
 * docker
 * docker-compose
 * node v18
