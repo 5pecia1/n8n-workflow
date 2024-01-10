@@ -1,6 +1,8 @@
 # My n8n workflow
 
-> Contribution Welcome!
+```
+Contribution Welcome!
+```
 
 - [My n8n workflow](#my-n8n-workflow)
   * [Notion mind map](#notion-mind-map)
