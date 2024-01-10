@@ -1,6 +1,79 @@
-# My n8n workflow
+# My n8n workflowa
 
-## notion & google calendar 2 way sync
+- [My n8n workflow](#my-n8n-workflow)
+  * [Notion mind map](#notion-mind-map)
+    + [example](#example)
+    + [Feature](#feature)
+    + [Use](#use)
+      - [Prerequisites](#prerequisites)
+      - [Set And Run](#set-and-run)
+      - [USAGE](#usage)
+  * [[Upgrading]notion & google calendar 2 way sync](#-upgrading-notion---google-calendar-2-way-sync)
+    + [Feature](#feature-1)
+    + [Use](#use-1)
+      - [Prerequisites](#prerequisites-1)
+      - [Set And Run](#set-and-run-1)
+      - [USAGE](#usage-1)
+    + [Develop](#develop)
+      - [Action Maker](#action-maker)
+      - [Workflow](#workflow)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+ 
+## Notion mind map
+
+![](./resource/notion-mind-map.png)
+
+### Example
+
+![](./resource/notion-mind-map-example.png)
+
+### Feature
+
+- [x] 1 way sync(notion -> mind map)
+- [x] sync every 1 second
+
+### Use
+
+#### Prerequisites
+
+* docker
+* docker-compose
+* node v18
+
+#### Set And Run
+
+1. install npm(only linux)
+    ```bash
+    $ cd notion-mindmap
+    $ npm install
+    ```
+2. run docker container
+    ```bash
+    $ docker-compose up -d
+    ```
+3. open and import workflow
+    1. open http://localhost:5678
+    2. Click `Workflows`(upper left)
+    2. Click `Add workflow`
+    3. Click three dot button and `Import from File`
+    4. Select [`./notion-mindmap/Notion__Mindmap.json`](./notion-mindmap/Notion_mindmap.json)
+4. Set Notion Credentials in n8n
+    * Notion reference: https://docs.n8n.io/credentials/notion/
+5. Change your notion information in workflow nodes
+6. Set your n8n url in `Set Environments` node (ex. http://localhost:5678)
+4. Active this workflows  
+    check `Active` button (upper right)
+
+#### USAGE
+
+1. Copy notion page url(ctrl + l)
+2. Add n8n connections (ref: `Set And Run > 4. Set Notion Credentials in n8n`)  
+  ![](./resource/notion-connection.png)
+3. embed mindmap url in notion page (ex: http://localhost:5678/workflow/xxxx-xx-xx-xx?notion={notion url})
+
+## [Upgrading]notion & google calendar 2 way sync
 
 ![](./resource/notion-gcal.png)
 

@@ -1,10 +1,5 @@
 version: '3'
 
-networks:
-  sol-net:
-    external: true
-  private-net:
-
 services:
   n8n:
     container_name: n8n
@@ -38,8 +33,3 @@ services:
       - ./notion-mindmap/node_modules/node_modules/whatwg-url:/usr/local/lib/node_modules/whatwg-url
     ports:
         - ${N8N_PORT}:${N8N_PORT}
-    labels:
-      sol: "n8n"
-    networks:
-      sol-net:
-        ipv4_address: 10.254.0.9
