@@ -1,0 +1,146 @@
+{
+  "name": "Clear execution history",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "On clicking 'execute'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        660,
+        420
+      ],
+      "typeVersion": 1,
+      "id": "8a12bcc4-ec9c-42a2-91ed-2d152f491f77"
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 7
+            }
+          ]
+        }
+      },
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "position": [
+        660,
+        580
+      ],
+      "typeVersion": 1,
+      "id": "f85730cf-d2a9-4214-989c-599d64eb6e4b"
+    },
+    {
+      "parameters": {
+        "resource": "execution",
+        "returnAll": true,
+        "filters": {},
+        "options": {}
+      },
+      "id": "fe9151dd-e19a-4e8c-9a55-37419d598f56",
+      "name": "Get all execution",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        900,
+        460
+      ],
+      "credentials": {
+        "n8nApi": {
+          "id": "4",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const today= new Date()\nconst thirtyDaysAgo = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));\n\n\nreturn $input.all().filter(i => new Date(i.json.startedAt).getTime() <= thirtyDaysAgo.getTime());"
+      },
+      "id": "a180d690-c71e-4abb-b8b3-f59afda5ad2b",
+      "name": "filter old execution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "execution",
+        "operation": "delete",
+        "executionId": "={{ $json[\"id\"] }}"
+      },
+      "id": "501cff96-3459-42ff-bfc4-cb72bf7fcf44",
+      "name": "Delete old execution",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        460
+      ],
+      "credentials": {
+        "n8nApi": {
+          "id": "4",
+          "name": "n8n account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Get all execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On clicking 'execute'": {
+      "main": [
+        [
+          {
+            "node": "Get all execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all execution": {
+      "main": [
+        [
+          {
+            "node": "filter old execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "filter old execution": {
+      "main": [
+        [
+          {
+            "node": "Delete old execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "c4fc049c-ca73-45d6-bafa-4e66b1292191",
+  "id": "3",
+  "meta": {
+    "instanceId": "b6295adb3e611e83e2c6500ee090587200ecdb704b9eb5014750b4ffb885fdc9"
+  },
+  "tags": []
+}
