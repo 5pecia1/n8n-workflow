@@ -1,0 +1,251 @@
+{
+  "name": "Notion mindmap",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "$input.item.json.notion = $input.item.json.query.notion;\n$input.item.json.notionKey = $input.item.json.headers.authorization;\n\nreturn $input.item;"
+      },
+      "id": "e0e30042-7997-4077-9820-fa0252fe60ba",
+      "name": "notion to markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2720,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "path": "4d958b46-f507-4a2c-be23-8999ceb2b119",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9e71996b-7a1e-4153-a5bf-e304046bbd3a",
+      "name": "get webpage1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        1880
+      ],
+      "webhookId": "4d958b46-f507-4a2c-be23-8999ceb2b119"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!doctype html>\n<html lang=\"en\">\n\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <script>\n        const darkThemeCSS = {\n            type: 'style',\n            data: `\n    .markmap {\n      font: 300 16px/20px sans-serif;\n      color: #d1d5db; /* 밝은 글자색 */\n      background-color: #1a1a1a; /* 어두운 배경색 */\n    }\n\n    .markmap-link {\n      fill: none;\n    }\n\n    .markmap-node > circle {\n      cursor: pointer;\n    }\n\n    .markmap-foreign {\n      display: inline-block;\n      max-width: 400px;\n      word-wrap: break-word;\n      word-break: normal;\n    }\n\n    .markmap-foreign a {\n      color: #58a6ff; /* 밝은 링크 색상 */\n    }\n\n    .markmap-foreign a:hover {\n      color: #68b8ff; /* 밝은 링크 호버 색상 */\n    }\n\n    .markmap-foreign code {\n      padding: 0.25em;\n      font-size: calc(1em - 2px);\n      color: #d1d5db; /* 밝은 코드 글자색 */\n      background-color: #2d2d2d; /* 어두운 코드 배경색 */\n      border-radius: 2px;\n    }\n    \n    .markmap-foreign pre {\n      margin: 0;\n    }\n\n    .markmap-foreign pre > code {\n      display: block;\n    }\n\n    .markmap-foreign del {\n      text-decoration: line-through;\n    }\n\n    .markmap-foreign em {\n      font-style: italic;\n    }\n\n    .markmap-foreign strong {\n      font-weight: bold;\n    }\n\n    .markmap-foreign mark {\n      background: #a855f7; /* 다크 테마 하이라이트 색상 */\n    }\n    .mm-toolbar {\n        display: flex;\n        justify-content: space-between;\n        align-items: center;\n        padding: 0.5rem 1rem;\n        background-color: #1a1a1a;\n        color: #d1d5db;\n        font-size: 1rem;\n        font-weight: 500;\n        line-height: 1.5;\n        border-bottom: 1px solid #4b5563;\n    }\n    .mm-toolbar-brand {\n        display: none;\n    }\n  `\n        };\n        window.markmap = {\n            autoLoader: {\n                toolbar: true,\n                manual: true,\n                baseCss: [darkThemeCSS]\n            },\n        };\n    </script>\n    <script src=\"https://cdn.jsdelivr.net/npm/markmap-autoloader@latest\"></script>\n    <script>\n        const URL = \"{{ $node[\"Set Environments\"].parameter[\"values\"][\"string\"][0][\"value\"] }}\";\n        let markdown = \"\";\n\n        async function callMarkdown() {\n            console.log(\"callMarkdown\");\n            const queryString = window.location.search;\n            const urlParams = new URLSearchParams(queryString);\n            const notion = urlParams.get('notion');\n\n            // return {\"markdown\":{\"parent\": string}}\n            const url = URL + \"?notion=\" + notion;\n            const response = await fetch(url, {\n                method: 'GET',\n                headers: {\n                    'Content-Type': 'application/json',\n                },\n            });\n            const data = await response.json();\n            console.log('Success:', data);\n            const parent = data.markdown.parent;\n            const markmap = document.querySelector('.markmap');\n\n            if (parent === markdown) {\n                return false;\n            }\n\n            markdown = parent;\n            const content = `<script type=\"text/template\">${markdown}<\\/script>`;\n            markmap.innerHTML = content;\n\n            return true;\n        }\n\n        let waiting = false;\n        setInterval(async () => {\n            if (waiting) {\n                return;\n            }\n            try {\n                waiting = true;\n\n                const isUpdated = await callMarkdown();\n                if (isUpdated) {\n                    markmap.autoLoader.renderAll();\n                }\n\n                waiting = false;\n            } catch (error) {\n                console.error('Error:', error);\n                document.querySelector('.markmap').innerHTML = \"Error: \" + error;\n                waiting = false;\n            }\n        }, 1000);\n    </script>\n    <style>\n        .markmap {\n            position: relative;\n        }\n\n        .markmap>svg {\n            width: 100vw;\n            height: 100vh;\n        }\n    </style>\n    <title>Notion Mind map</title>\n</head>\n\n<body>\n    <div class=\"markmap\">\n        waiting...\n        <script type=\"text/template\">\n        </script>\n    </div>\n</body>\n\n</html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=UTF-8"
+              }
+            ]
+          }
+        }
+      },
+      "name": "return webpage1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        2720,
+        1880
+      ],
+      "typeVersion": 1,
+      "id": "cf85464d-32ad-4a33-90d6-72de0449bb35"
+    },
+    {
+      "parameters": {
+        "path": "57c21a0f-1689-4ce2-80ea-1e45a0ba3335",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4c2735d1-4d6e-4fa2-87b5-63636bde8a02",
+      "name": "get notion data1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        2100
+      ],
+      "webhookId": "57c21a0f-1689-4ce2-80ea-1e45a0ba3335"
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:9012/webhook/6f864a77-482a-43b5-8d87-266dc1b367db?notion={{ $json[\"query\"][\"notion\"] }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "options": {}
+      },
+      "id": "4213bb87-9b45-4a97-aa17-c8c77f9a6c01",
+      "name": "Send notion credential1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2720,
+        2100
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "2",
+          "name": "Notion API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "6f864a77-482a-43b5-8d87-266dc1b367db",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0988a51f-5de4-4822-9c82-a5ad632376f4",
+      "name": "get notion credential1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        2320
+      ],
+      "webhookId": "6f864a77-482a-43b5-8d87-266dc1b367db"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "(()=>{\"use strict\";var o={891:o=>{o.exports=require(\"@notionhq/client\")},608:o=>{o.exports=require(\"notion-to-md\")}},n={};function e(t){var r=n[t];if(void 0!==r)return r.exports;var i=n[t]={exports:{}};return o[t](i,i.exports,e),i.exports}var t={};for(var r in(()=>{var o=t;Object.defineProperty(o,\"__esModule\",{value:!0}),o.main=void 0;const n=e(891),r=e(608);o.main=async function(o){const e=o.json.notion,t=o.json.notionKey.split(\" \")[1];console.log(e,t);const i=function(o){const n=o.match(/([a-zA-Z0-9]{32})\\b/);if(!n)throw new Error(\"UUID not found in the URL\");const e=n[0];return`${e.slice(0,8)}-${e.slice(8,12)}-${e.slice(12,16)}-${e.slice(16,20)}-${e.slice(20)}`}(e);console.log(i);const s=new n.Client({auth:t}),c=new r.NotionToMarkdown({notionClient:s}),a=await c.pageToMarkdown(i);return{json:{markdown:c.toMarkdownString(a)}}}})(),t)this[r]=t[r];t.__esModule&&Object.defineProperty(this,\"__esModule\",{value:!0})})();return main($input.item)\n"
+      },
+      "id": "db9ef141-6b20-4d8c-b8ec-374ac3e54183",
+      "name": "Code1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c6fe5eb0-5366-46e1-942a-88e5eafe77f6",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        3160,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "0d3e5cde-1466-45c8-b51b-4ecb3d5b864a",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "notion data webhook url",
+              "value": "https://n8nxxxxxxxxxx/webhook/57c21a0f-1689-4ce2-80ea-1e45a0ba3335"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2de2aeec-4170-49ba-8c1d-300e0110a194",
+      "name": "Set Environments",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        1860
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "get webpage1": {
+      "main": [
+        [
+          {
+            "node": "return webpage1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get notion data1": {
+      "main": [
+        [
+          {
+            "node": "Send notion credential1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get notion credential1": {
+      "main": [
+        [
+          {
+            "node": "notion to markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notion to markdown": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send notion credential1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "dd348f77-365e-4c57-b49a-1e13a85c244f",
+  "id": "8",
+  "meta": {
+    "instanceId": "b6295adb3e611e83e2c6500ee090587200ecdb704b9eb5014750b4ffb885fdc9"
+  },
+  "tags": []
+}
