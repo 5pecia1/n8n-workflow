@@ -5,97 +5,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
-        const darkThemeCSS = {
-            type: 'style',
-            data: `
-    .markmap {
-      font: 300 16px/20px sans-serif;
-      color: #d1d5db; /* 밝은 글자색 */
-      background-color: #1a1a1a; /* 어두운 배경색 */
-    }
-
-    .markmap-link {
-      fill: none;
-    }
-
-    .markmap-node > circle {
-      cursor: pointer;
-    }
-
-    .markmap-foreign {
-      display: inline-block;
-      max-width: 400px;
-      word-wrap: break-word;
-      word-break: normal;
-    }
-
-    .markmap-foreign a {
-      color: #58a6ff; /* 밝은 링크 색상 */
-    }
-
-    .markmap-foreign a:hover {
-      color: #68b8ff; /* 밝은 링크 호버 색상 */
-    }
-
-    .markmap-foreign code {
-      padding: 0.25em;
-      font-size: calc(1em - 2px);
-      color: #d1d5db; /* 밝은 코드 글자색 */
-      background-color: #2d2d2d; /* 어두운 코드 배경색 */
-      border-radius: 2px;
-    }
-    
-    .markmap-foreign pre {
-      margin: 0;
-    }
-
-    .markmap-foreign pre > code {
-      display: block;
-    }
-
-    .markmap-foreign del {
-      text-decoration: line-through;
-    }
-
-    .markmap-foreign em {
-      font-style: italic;
-    }
-
-    .markmap-foreign strong {
-      font-weight: bold;
-    }
-
-    .markmap-foreign mark {
-      background: #a855f7; /* 다크 테마 하이라이트 색상 */
-    }
-    .mm-toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 1rem;
-        background-color: #1a1a1a;
-        color: #d1d5db;
-        font-size: 1rem;
-        font-weight: 500;
-        line-height: 1.5;
-        border-bottom: 1px solid #4b5563;
-    }
-    .mm-toolbar-brand {
-        display: none;
-    }
-  `
-        };
         window.markmap = {
             autoLoader: {
                 toolbar: true,
                 manual: true,
-                baseCss: [darkThemeCSS]
             },
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@latest"></script>
     <script>
-        const URL = "{{ $node["Set Environments"].parameter["values"]["string"][0]["value"] }}";
+        const URL = "{{ $node["Set Environments"].parameter["values"]["string"][0]["value"] }}/webhook/{{ $node["get notion data"].parameter["path"] }}";
+
         let markdown = "";
 
         async function callMarkdown() {
@@ -150,6 +70,9 @@
         }, 1000);
     </script>
     <style>
+        body {
+            background-color: white;
+        }
         .markmap {
             position: relative;
         }
