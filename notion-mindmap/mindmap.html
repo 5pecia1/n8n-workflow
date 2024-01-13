@@ -15,6 +15,12 @@
     <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@latest"></script>
     <script>
         const URL = "{{ $node["Set Environments"].parameter["values"]["string"][0]["value"] }}/webhook/{{ $node["get notion data"].parameter["path"] }}";
+        const MAX_WIDTH = 200;
+        const MARKMAP_OPTIONS = `---
+markmap:
+  maxWidth: ${MAX_WIDTH}
+---
+`;
 
         let markdown = "";
 
@@ -42,7 +48,7 @@
             }
 
             markdown = parent;
-            const content = `<script type="text/template">${markdown}<\/script>`;
+            const content = `<script type="text/template">${MARKMAP_OPTIONS}${markdown}<\/script>`;
             markmap.innerHTML = content;
 
             return true;
