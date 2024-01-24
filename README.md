@@ -37,6 +37,8 @@ Contribution Welcome!
 
 - [x] 1 way sync(notion -> mind map)
 - [x] sync every 1 second
+- [ ] Image
+- [ ] Table
 
 ### Use
 
